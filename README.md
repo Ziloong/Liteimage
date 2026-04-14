@@ -1,4 +1,4 @@
-# 轻图 (LiteImagePng)
+# 轻图 (LiteImage)
 
 macOS 图片压缩工具，支持 PNG / JPG / GIF 无损压缩，以及视频转 GIF 功能。
 

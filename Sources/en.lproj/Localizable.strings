@@ -1,0 +1,78 @@
+/* Tab Bar */
+"图片压缩" = "Compress Images";
+"视频转 GIF" = "Video to GIF";
+
+/* Engine */
+"TinyPNG" = "TinyPNG";
+"本地引擎" = "Local Engine";
+"使用云端 TinyPNG API 压缩（需要网络）" = "Compress via TinyPNG cloud API (requires internet)";
+"使用本地引擎压缩（无需网络）" = "Compress via local engine (no internet required)";
+
+/* Drop Zone */
+"拖放图片到此处" = "Drop images here";
+"或点击选择图片文件" = "or click to select files";
+"支持 PNG / JPG / GIF" = "Supports PNG / JPG / GIF";
+"拖放视频文件到这里" = "Drop video file here";
+"或点击选择文件" = "or click to select";
+"支持 MP4, MOV, M4V" = "Supports MP4, MOV, M4V";
+
+/* Compression View */
+"覆盖原文件" = "Overwrite original";
+"压缩后直接替换原文件" = "Original file will be replaced after compression";
+"压缩后保存为 xxx-compressed.xxx" = "Compressed file will be saved as xxx-compressed.xxx";
+"压缩完成后自动覆盖原文件" = "Original file will be replaced after compression";
+"压缩完成后保存为 xxx-compressed.xxx" = "Compressed file will be saved as xxx-compressed.xxx";
+
+/* Stats */
+"已压缩" = "Compressed";
+"节省空间" = "Space Saved";
+"平均压缩率" = "Avg. Ratio";
+"本月剩余" = "Remaining";
+"本地无限" = "Unlimited";
+
+/* Logs */
+"压缩记录" = "History";
+"暂无压缩记录，拖放图片开始压缩" = "No compression history. Drop images to start.";
+"⏳ 等待中..." = "⏳ Waiting...";
+"🔄 压缩中..." = "🔄 Compressing...";
+
+/* GIF Conversion */
+"质量" = "Quality";
+"输出设置" = "Output Settings";
+"选择视频" = "Select Video";
+"开始转换" = "Start";
+"日志" = "Log";
+"等待转换..." = "Waiting for conversion...";
+"转换完成" = "Conversion Complete";
+"在 Finder 中显示" = "Show in Finder";
+"宽度" = "Width";
+"帧率" = "Frame Rate";
+
+/* Quality Presets */
+"低质量" = "Low";
+"中等质量" = "Medium";
+"高质量" = "High";
+"小文件，较低清晰度" = "Small file, lower quality";
+"平衡大小和清晰度" = "Balanced size and quality";
+"最佳清晰度，较大文件" = "Best quality, larger file";
+
+/* Settings */
+"API Key 设置" = "API Key Settings";
+"在 tinypng.com/developers 免费申请，每月可压缩 500 张" = "Get free API key at tinypng.com/developers, 500 compressions/month";
+"API Key" = "API Key";
+"输入 API Key" = "Enter API Key";
+"关闭" = "Close";
+"测试中..." = "Testing...";
+"测试 API 可用性" = "Test API";
+"保存" = "Save";
+"✅ API Key 有效！本月已用 %d 次，剩余 %d 次" = "✅ API Key valid! Used %d times this month, %d remaining.";
+"✅ 已保存" = "✅ Saved";
+
+/* Errors */
+"未知错误" = "Unknown error";
+"未设置 API Key" = "API Key not set";
+"API Key 无效" = "Invalid API Key";
+"网络连接失败" = "Network connection failed";
+"TinyPNG 服务器错误" = "TinyPNG server error";
+"服务器返回无效响应" = "Invalid server response";
+"下载压缩后图片失败" = "Failed to download compressed image";

@@ -23,10 +23,11 @@ targets:
         type: group
         buildPhase: sources
       - path: Assets.xcassets
+      - path: Resources/ffmpeg
+      - path: Resources/gifski
+      - path: Resources/pngquant
+      - path: Resources/libpng16.16.dylib
       - path: AppIcon.icns
-      - path: Resources
-        excludes:
-          - "*.md"
       - path: Sources/en.lproj
         type: folder
         buildPhase: resources

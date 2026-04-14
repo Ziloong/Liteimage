@@ -24,6 +24,9 @@
 		E915123BEAC45B23B10374B7 /* TinyPNG_CompressorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD424397735BE10BED1D8FE0 /* TinyPNG_CompressorApp.swift */; };
 		F4B618C65001DDAD8052C3B9 /* GIFConverterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9663375C183D34BBC011827 /* GIFConverterViewModel.swift */; };
 		FABFD8E7764BB0EDC2E15BA0 /* LocalCompressorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEF338418EFA4ED5CCF38660 /* LocalCompressorService.swift */; };
+		FF10000100000001FF100001 /* ffmpeg in Resources */ = {isa = PBXBuildFile; fileRef = B10CF02745C12BC7F21B3342 /* ffmpeg */; };
+		FF10000100000002FF100001 /* gifski in Resources */ = {isa = PBXBuildFile; fileRef = 26159D9453DA56638C5E65C8 /* gifski */; };
+		FF10000100000003FF100001 /* pngquant in Resources */ = {isa = PBXBuildFile; fileRef = 65F4BF993446A56CBCA2C5BE /* pngquant */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -168,6 +171,9 @@
 				920AA2E5D3A803D75DAE8139 /* en.lproj in Resources */,
 				9243038B33048E83FAA036AD /* libpng16.16.dylib in Resources */,
 				545B0114B9CCAE1286D45DAA /* zh-Hans.lproj in Resources */,
+				FF10000100000001FF100001 /* ffmpeg in Resources */,
+				FF10000100000002FF100001 /* gifski in Resources */,
+				FF10000100000003FF100001 /* pngquant in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

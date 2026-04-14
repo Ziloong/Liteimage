@@ -75,7 +75,9 @@ macOS 图片压缩工具，支持 PNG / JPG / GIF 无损压缩，以及视频转
 
 ---
 ## 5. 特别声明
-作者是一名设计师，完全0代码基础，本项目是方便在日常工作中使用，所有代码均由Agent生产，其中用到的Model有Deepseek3.2、智谱GLM5.X，有问题请提交lssues
+作者是一名设计师，完全0代码基础，本项目是方便在日常工作中使用，所有代码均由Agent生产，其中用到的Model有Deepseek3.2、智谱GLM5.X。
+甚至。。这个app icon都是Ai生产的
+有问题请提交lssues
 
 
 ## License

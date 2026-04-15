@@ -6,6 +6,8 @@ macOS 图片压缩工具，支持 PNG / JPG / GIF 无损压缩，以及视频转
 ![Swift](https://img.shields.io/badge/Swift-5.9-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+[English](./README_en.md) · [中文](./README.md)
+
 ---
 
 ## 1. 介绍

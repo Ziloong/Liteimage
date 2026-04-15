@@ -38,6 +38,7 @@ struct ContentView: View {
             // Content - 使用 if-else 替代 TabView
             if selectedTab == .imageCompress {
                 ImageCompressView()
+                    .environmentObject(viewModel)
             } else {
                 GIFConversionView()
             }
@@ -85,7 +86,7 @@ struct ContentView: View {
 // MARK: - Image Compression View
 
 struct ImageCompressView: View {
-    @StateObject private var viewModel = CompressorViewModel()
+    @EnvironmentObject var viewModel: CompressorViewModel
     @State private var isTargeted = false
     @State private var showFilePicker = false
     
@@ -123,6 +124,84 @@ struct ImageCompressView: View {
                         Spacer()
                     }
                     .padding(.horizontal)
+
+                    // 本地引擎质量选项
+                    if viewModel.selectedEngine == .local {
+                        HStack(spacing: 8) {
+                            Text(L.quality)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 4) {
+                                ForEach(LocalCompressionQuality.allCases) { q in
+                                    Button {
+                                        viewModel.localQuality = q
+                                    } label: {
+                                        Text(q.displayName)
+                                            .font(.caption)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 4)
+                                            .background(viewModel.localQuality == q ? Color.accentColor : Color(NSColor.controlBackgroundColor))
+                                            .foregroundColor(viewModel.localQuality == q ? .white : .primary)
+                                            .cornerRadius(5)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+
+                        // 尺寸缩放选项
+                        HStack(spacing: 8) {
+                            Toggle(L.resizeByLongEdge, isOn: $viewModel.resizeEnabled)
+                                .toggleStyle(.checkbox)
+                                .font(.caption)
+
+                            if viewModel.resizeEnabled {
+                                HStack(spacing: 4) {
+                                    TextField("", value: $viewModel.maxLongEdge, formatter: {
+                                        let f = NumberFormatter()
+                                        f.minimum = 100
+                                        f.maximum = 8000
+                                        f.allowsFloats = false
+                                        return f
+                                    }())
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 64)
+                                    .font(.caption)
+
+                                    Text("px")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                // 常用预设
+                                HStack(spacing: 4) {
+                                    ForEach([1920, 1280, 800], id: \.self) { preset in
+                                        Button("\(preset)") {
+                                            viewModel.maxLongEdge = preset
+                                        }
+                                        .font(.system(size: 10))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(viewModel.maxLongEdge == preset ? Color.accentColor : Color(NSColor.controlBackgroundColor))
+                                        .foregroundColor(viewModel.maxLongEdge == preset ? .white : .secondary)
+                                        .cornerRadius(4)
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            } else {
+                                Text(L.resizeHint)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                    }
                     
                     // Stats
                     statsView

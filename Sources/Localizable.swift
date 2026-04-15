@@ -24,6 +24,8 @@ enum L {
 
     // MARK: - Compression View
     static let overwriteOriginal = String(localized: "覆盖原文件")
+    static let resizeByLongEdge = String(localized: "按长边缩放")
+    static let resizeHint = String(localized: "超出长边时等比缩放")
     static let overwriteHint = String(localized: "压缩后直接替换原文件")
     static let saveAsHint = String(localized: "压缩后保存为 xxx-compressed.xxx")
     static let overwriteFooter = String(localized: "压缩完成后自动覆盖原文件")
@@ -55,9 +57,11 @@ enum L {
     static let framerate = String(localized: "帧率")
 
     // MARK: - Quality Presets
+    static let ultraLowQuality = String(localized: "超低质量")
     static let lowQuality = String(localized: "低质量")
     static let mediumQuality = String(localized: "中等质量")
     static let highQuality = String(localized: "高质量")
+    static let ultraLowQualityDesc = String(localized: "最小体积，极低清晰度")
     static let lowQualityDesc = String(localized: "小文件，较低清晰度")
     static let mediumQualityDesc = String(localized: "平衡大小和清晰度")
     static let highQualityDesc = String(localized: "最佳清晰度，较大文件")

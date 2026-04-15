@@ -33,6 +33,35 @@ enum CompressionEngine: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - 本地压缩质量
+enum LocalCompressionQuality: String, CaseIterable, Identifiable {
+    case ultraLow
+    case low
+    case medium
+    case high
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .ultraLow: return L.ultraLowQuality
+        case .low:      return L.lowQuality
+        case .medium:   return L.mediumQuality
+        case .high:     return L.highQuality
+        }
+    }
+
+    /// pngquant --quality=min-max
+    var pngquantRange: String {
+        switch self {
+        case .ultraLow: return "10-20"
+        case .low:      return "40-60"
+        case .medium:   return "65-80"
+        case .high:     return "85-95"
+        }
+    }
+}
+
 // MARK: - 压缩状态
 enum CompressionStatus: Equatable {
     case waiting

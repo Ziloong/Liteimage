@@ -9,6 +9,9 @@ class CompressorViewModel: ObservableObject {
     @Published var showSettings = false
     @Published var selectedEngine: CompressionEngine = .local  // 默认使用本地引擎
     @Published var shouldOverwrite: Bool = true  // 是否覆盖原文件，默认勾选
+    @Published var localQuality: LocalCompressionQuality = .high  // 本地压缩质量，默认高
+    @Published var resizeEnabled: Bool = false          // 是否开启尺寸缩放
+    @Published var maxLongEdge: Int = 2048              // 最大长边像素
 
     private let tinyPNGService = TinyPNGService()
     private let localService = LocalCompressorService()
@@ -124,13 +127,29 @@ class CompressorViewModel: ObservableObject {
         let tempDir = FileManager.default.temporaryDirectory
         let outputURL = tempDir.appendingPathComponent(UUID().uuidString + "." + ext)
 
+        // 尺寸缩放（按长边，仅本地引擎）
+        let processURL: URL
+        if resizeEnabled && maxLongEdge > 0 && (ext == "png" || ext == "jpg" || ext == "jpeg") {
+            let resizedURL = tempDir.appendingPathComponent(UUID().uuidString + "_resized." + ext)
+            let resized = try await localService.resizeIfNeeded(inputURL: url, outputURL: resizedURL, maxLongEdge: maxLongEdge)
+            processURL = resized ? resizedURL : url
+        } else {
+            processURL = url
+        }
+
         switch ext {
         case "png", "jpg", "jpeg":
-            _ = try await localService.compressPNG(inputURL: url, outputURL: outputURL)
+            _ = try await localService.compressPNG(inputURL: processURL, outputURL: outputURL, qualityRange: localQuality.pngquantRange)
         case "gif":
             _ = try await localService.compressGIF(inputURL: url, outputURL: outputURL)
         default:
             throw LocalCompressorService.CompressionError.unsupportedFormat(ext)
+        }
+
+        // 清理缩放临时文件
+        if resizeEnabled, let resizedURL = resizeEnabled ? tempDir.appendingPathComponent(processURL.lastPathComponent) as URL? : nil,
+           resizedURL != url {
+            try? FileManager.default.removeItem(at: resizedURL)
         }
 
         // 根据设置决定最终保存位置

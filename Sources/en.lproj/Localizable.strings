@@ -18,6 +18,8 @@
 
 /* Compression View */
 "覆盖原文件" = "Overwrite original";
+"按长边缩放" = "Resize by Long Edge";
+"超出长边时等比缩放" = "Scale down if long edge exceeds limit";
 "压缩后直接替换原文件" = "Original file will be replaced after compression";
 "压缩后保存为 xxx-compressed.xxx" = "Compressed file will be saved as xxx-compressed.xxx";
 "压缩完成后自动覆盖原文件" = "Original file will be replaced after compression";

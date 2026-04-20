@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+src-tauri/target/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Logs
+*.log
+liteimage-debug.log
+
+# OS files
+Thumbs.db
+.DS_Store
+._.
+
+# Temp files
+*.tmp
+*.bak
+*~
+
+# User data (keep sample/configs in resources if needed)
+C:/Users/*/AppData/Local/LiteImage/

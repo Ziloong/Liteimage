@@ -70,7 +70,7 @@ export default function ImageCompress() {
   React.useEffect(() => {
     const unlisten = listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
       const paths = event.payload.paths;
-      const imageExts = ["png", "jpg", "jpeg", "gif"];
+      const imageExts = ["png", "jpg", "jpeg"];
       const imageFiles = paths.filter(
         (p) => imageExts.includes(p.split(".").pop()?.toLowerCase() || "")
       );
@@ -188,7 +188,7 @@ export default function ImageCompress() {
         filters: [
           {
             name: "图片",
-            extensions: ["png", "jpg", "jpeg", "gif"],
+            extensions: ["png", "jpg", "jpeg"],
           },
         ],
       });
@@ -207,8 +207,6 @@ export default function ImageCompress() {
       case "jpg":
       case "jpeg":
         return "🟠";
-      case "gif":
-        return "🟣";
       default:
         return "📄";
     }
@@ -250,7 +248,7 @@ export default function ImageCompress() {
         <div className="drop-icon">⬇</div>
         <div className="drop-title">拖放图片到此处</div>
         <div className="drop-subtitle">或点击选择图片文件</div>
-        <div className="drop-hint">支持 PNG / JPG / GIF</div>
+        <div className="drop-hint">支持 PNG / JPG</div>
       </div>
 
       {/* Overwrite Option */}

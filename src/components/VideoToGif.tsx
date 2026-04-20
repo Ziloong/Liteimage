@@ -3,276 +3,225 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { VideoInfo, GifResult } from "../types";
+import "./VideoToGif.css";
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function fmtSize(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / 1048576).toFixed(1)} MB`;
 }
 
-function formatDuration(seconds: number): string {
-  const min = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 100);
-  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+function fmtDur(s: number) {
+  const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+  return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
 }
 
-const QUALITY_PRESETS = [
-  { key: "low", label: "低", value: 50 },
-  { key: "medium", label: "中", value: 70 },
-  { key: "high", label: "高", value: 90 },
+const QUALITIES = [
+  { key: "low", label: "低质量", v: 50 },
+  { key: "mid", label: "中等",   v: 70 },
+  { key: "hi",  label: "高质量", v: 90 },
 ];
 
+interface VItem {
+  id: string;
+  path: string;
+  info: VideoInfo | null;
+  st: "wait" | "run" | "ok" | "err";
+  res?: GifResult;
+  err?: string;
+}
+
 export default function VideoToGif() {
-  const [videoPath, setVideoPath] = useState<string | null>(null);
-  const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
-  const [quality, setQuality] = useState(70);
-  const [width, setWidth] = useState(480);
-  const [fps, setFps] = useState(15);
-  const [isConverting, setIsConverting] = useState(false);
-  const [conversionLogs, setConversionLogs] = useState<string[]>([]);
-  const [gifResult, setGifResult] = useState<GifResult | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [vs, setVs] = useState<VItem[]>([]);
+  const [q, setQ] = useState(70);
+  const [w, setW] = useState(480);
+  const [f, setF] = useState(15);
+  const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(false);
 
-  const addLog = (msg: string) => {
-    const time = new Date().toLocaleTimeString("zh-CN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-    setConversionLogs((prev) => [...prev, `[${time}] ${msg}`]);
-  };
+  const pend = vs.filter(v => v.st === "wait").length;
+  const done = vs.filter(v => v.st === "ok").length;
+  const fail = vs.filter(v => v.st === "err").length;
 
-  // Drag and drop for video
   useEffect(() => {
-    const unlisten = listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
-      const path = event.payload.paths[0];
-      if (path) loadVideo(path);
+    const u1 = listen<{ paths: string[] }>("tauri://drag-drop", e => {
+      if (e.payload.paths?.length) add(e.payload.paths);
     });
-    const unlistenHover = listen("tauri://drag-hover", () => setIsDragging(true));
-    const unlistenLeave = listen("tauri://drag-cancel", () => setIsDragging(false));
-    const unlistenDrop = listen("tauri://drag-drop", () => setIsDragging(false));
-
+    const u2 = listen("tauri://drag-hover", () => setDrag(true));
+    const u3 = listen("tauri://drag-cancel", () => setDrag(false));
+    const u4 = listen("tauri://drag-drop", () => setDrag(false));
     return () => {
-      unlisten.then((fn) => fn());
-      unlistenHover.then((fn) => fn());
-      unlistenLeave.then((fn) => fn());
-      unlistenDrop.then((fn) => fn());
+      u1.then(f => f()); u2.then(f => f()); u3.then(f => f()); u4.then(f => f());
     };
   }, []);
 
-  const loadVideo = async (path: string) => {
-    try {
-      const info = await invoke<VideoInfo>("get_video_info", { inputPath: path });
-      setVideoPath(path);
-      setVideoInfo(info);
-      setGifResult(null);
-      setConversionLogs([]);
-      if (info.width > 0) {
-        setWidth(info.width);
-      }
-      addLog(`✅ 加载视频成功: ${path.split(/[/\\]/).pop()}`);
-      addLog(`   分辨率: ${info.width}×${info.height}`);
-      addLog(`   时长: ${formatDuration(info.duration)}`);
-    } catch (err) {
-      addLog(`❌ 读取视频信息失败: ${err}`);
-    }
-  };
+  async function getInfo(p: string): Promise<VideoInfo | null> {
+    try { return await invoke<VideoInfo>("get_video_info", { inputPath: p }); }
+    catch { return null; }
+  }
 
-  const handleSelectVideo = async () => {
+  async function add(paths: string[]) {
+    const exts = ["mp4","mov","m4v","avi","mkv","webm"];
+    const ok = paths.filter(p => exts.includes(p.split(".").pop()!.toLowerCase()));
+    if (!ok.length) return;
+
+    const neu: VItem[] = ok.map(p => ({ id: crypto.randomUUID(), path: p, info: null, st: "wait" as const }));
+    setVs(prev => [...prev, ...neu]);
+
+    for (let i = 0; i < ok.length; i++) {
+      const info = await getInfo(ok[i]);
+      setVs(prev => prev.map(v => v.id === neu[i].id ? { ...v, info } : v));
+      if (i === 0 && info?.width) setW(Math.min(info.width, 1280));
+    }
+  }
+
+  async function pick() {
     try {
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: "视频",
-            extensions: ["mp4", "mov", "m4v", "avi", "mkv", "webm"],
-          },
-        ],
+      const s = await open({
+        multiple: true,
+        filters: [{ name: "视频", extensions: ["mp4","mov","m4v","avi","mkv","webm"] }],
       });
-      if (selected) {
-        loadVideo(selected as string);
+      if (s?.length) add(s as string[]);
+    } catch {}
+  }
+
+  function rm(id: string) { setVs(prev => prev.filter(v => v.id !== id)); }
+  function clr() { setVs([]); }
+
+  async function start() {
+    const pendV = vs.filter(v => v.st === "wait");
+    if (!pendV.length) return;
+    setBusy(true);
+
+    for (const v of pendV) {
+      setVs(prev => prev.map(x => x.id === v.id ? { ...x, st: "run" as const } : x));
+      try {
+        const r = await invoke<GifResult>("convert_video_to_gif", {
+          inputPath: v.path, quality: q, width: w, fps: f,
+          startTime: 0, duration: v.info?.duration || 5,
+        });
+        setVs(prev => prev.map(x => x.id === v.id ? { ...x, st: "ok" as const, res: r } : x));
+      } catch (e) {
+        setVs(prev => prev.map(x => x.id === v.id ? { ...x, st: "err" as const, err: String(e) } : x));
       }
-    } catch {}
-  };
-
-  const startConversion = async () => {
-    if (!videoPath) {
-      addLog("❌ 请先选择视频文件");
-      return;
     }
+    setBusy(false);
+  }
 
-    setIsConverting(true);
-    setGifResult(null);
-    addLog("开始转换...");
-    addLog(`   质量: ${quality}`);
-    addLog(`   宽度: ${width}px`);
-    addLog(`   帧率: ${fps} FPS`);
+  function showInExp(p: string) { invoke("open_file_in_explorer", { path: p }).catch(() => {}); }
+  function fn(p: string) { return p.split(/[/\\]/).pop() || p; }
 
-    try {
-      const result = await invoke<GifResult>("convert_video_to_gif", {
-        inputPath: videoPath,
-        quality,
-        width,
-        fps,
-        startTime: 0,
-        duration: videoInfo?.duration || 5,
-      });
-
-      setGifResult(result);
-      addLog("✅ 转换成功!");
-      addLog(`   输出: ${result.output_path.split(/[/\\]/).pop()}`);
-      addLog(`   大小: ${formatSize(result.file_size)}`);
-    } catch (err) {
-      addLog(`❌ 转换失败: ${err}`);
-    } finally {
-      setIsConverting(false);
-    }
-  };
-
-  const showInExplorer = async (path: string) => {
-    try {
-      await invoke("open_file_in_explorer", { path });
-    } catch {}
-  };
+  // 状态映射
+  const statusIcon: Record<string, string> = { ok: "✅", err: "❌", run: "⏳", wait: "🎥" };
+  const cls = (st: string) => `vg-item vg-item--${st}`;
 
   return (
-    <div className="gif-page">
-      <div className="gif-layout">
-        {/* Preview / Drop Zone */}
-        <div className="gif-preview">
-          {!videoPath ? (
-            <div
-              className={`drop-zone ${isDragging ? "dragging" : ""}`}
-              onClick={handleSelectVideo}
-              style={{ height: "220px" }}
-            >
-              <div className="drop-icon">🎬</div>
-              <div className="drop-title">拖放视频文件到这里</div>
-              <div className="drop-subtitle">或点击选择文件</div>
-              <div className="drop-hint">支持 MP4, MOV, M4V</div>
-            </div>
-          ) : (
-            <div
-              className={`drop-zone ${isDragging ? "dragging" : ""}`}
-              style={{ height: "180px" }}
-              onClick={handleSelectVideo}
-            >
-              <div className="drop-icon" style={{ fontSize: 48 }}>🎥</div>
-              <div className="drop-title">{videoPath.split(/[/\\]/).pop()}</div>
-            </div>
-          )}
-
-          {videoInfo && (
-            <div className="video-info">
-              <div className="video-name">{videoPath!.split(/[/\\]/).pop()}</div>
-              <div className="video-details">
-                <span>📐 {videoInfo.width}×{videoInfo.height}</span>
-                <span>⏱ {formatDuration(videoInfo.duration)}</span>
-                <span>🎬 {videoInfo.fps.toFixed(1)} FPS</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Settings Panel */}
-        <div className="gif-settings-panel">
-          <div className="settings-title">质量</div>
-          <div className="quality-bar" style={{ padding: 0, marginBottom: 12 }}>
-            {QUALITY_PRESETS.map((preset) => (
-              <button
-                key={preset.key}
-                className={`quality-btn ${quality === preset.value ? "active" : ""}`}
-                onClick={() => setQuality(preset.value)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="settings-subtitle">输出设置</div>
-
-          <div className="slider-row">
-            <div className="slider-header">
-              <span className="slider-label">宽度</span>
-              <span className="slider-value">{width} px</span>
-            </div>
-            <input
-              type="range"
-              min={160}
-              max={1280}
-              step={40}
-              value={width}
-              onChange={(e) => setWidth(parseInt(e.target.value))}
-            />
-          </div>
-
-          <div className="slider-row">
-            <div className="slider-header">
-              <span className="slider-label">帧率</span>
-              <span className="slider-value">{fps} FPS</span>
-            </div>
-            <input
-              type="range"
-              min={5}
-              max={30}
-              step={5}
-              value={fps}
-              onChange={(e) => setFps(parseInt(e.target.value))}
-            />
-          </div>
-        </div>
+    <div className="vg-page">
+      {/* 拖放区 */}
+      <div className={`vg-drop ${drag ? "active-drag" : ""}`} onClick={pick}>
+        <div className="vg-drop-icon">🎬</div>
+        <div className="vg-drop-title">拖放视频文件到这里</div>
+        <div className="vg-drop-desc">支持批量添加多个视频文件</div>
+        <div className="vg-drop-hint">MP4 · MOV · M4V · AVI · MKV · WebM</div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="action-bar">
-        {!isConverting ? (
-          <>
-            <button
-              className="btn btn-primary"
-              onClick={startConversion}
-              disabled={!videoPath}
-            >
-              ▶ 开始转换
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="progress-bar-container">
-              <div className="progress-bar">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: "100%", animation: "pulse 1.5s infinite" }}
-                />
+      {/* 内容区 */}
+      <div className="vg-body">
+        {/* 视频列表 */}
+        {vs.length > 0 && (
+          <div className="vg-card">
+            <div className="vg-list-header">
+              <span className="vg-list-title">已添加 {vs.length} 个视频</span>
+              <div className="vg-list-actions">
+                {done > 0 && <span className="vg-badge vg-badge--ok">{done} 成功</span>}
+                {fail > 0 && <span className="vg-badge vg-badge--err">{fail} 失败</span>}
+                <button className="vg-btn-clear" onClick={clr}>清空全部</button>
               </div>
             </div>
-            <button className="btn btn-danger">⏹ 停止</button>
-          </>
+            <div className="vg-list">
+              {vs.map(v => (
+                <div key={v.id} className={cls(v.st)}>
+                  <span className="vg-item-emoji">{statusIcon[v.st]}</span>
+                  <div className="vg-item-info">
+                    <div className="vg-item-name">{fn(v.path)}</div>
+                    {v.info && <div className="vg-item-meta">{v.info.width}×{v.info.height} · {fmtDur(v.info.duration)}</div>}
+                    {v.st === "ok" && v.res && (
+                      <div className="vg-item-sub vg-item-sub--ok">📦 {fn(v.res.output_path)} ({fmtSize(v.res.file_size)})</div>
+                    )}
+                    {v.st === "err" && <div className="vg-item-sub vg-item-sub--err" title={v.err}>{v.err}</div>}
+                    {(v.st === "wait" || v.st === "run") && (
+                      <div className="vg-item-sub vg-item-sub--idle">{v.st === "run" ? "⚙️ 转换中..." : "⏸ 等待转换"}</div>
+                    )}
+                  </div>
+                  <div className="vg-item-btns">
+                    {v.st === "ok" && v.res && (
+                      <button className="vg-icon-btn vg-icon-btn--dir" onClick={() => showInExp(v.res!.output_path)} title="打开文件夹">📁</button>
+                    )}
+                    {(v.st === "wait" || v.st === "err") && (
+                      <button className="vg-icon-btn vg-icon-btn--del" onClick={() => rm(v.id)} title="移除">✕</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-      </div>
 
-      {/* Log */}
-      <div className="conversion-log">
-        <div className="log-header">日志</div>
-        <div className={`log-box ${conversionLogs.length === 0 ? "placeholder" : ""}`}>
-          {conversionLogs.length === 0
-            ? "等待转换..."
-            : conversionLogs.join("\n")}
+        {/* 设置面板 */}
+        <div className="vg-card">
+          <div className="vg-settings-header">
+            <span className="emoji">⚙️</span>
+            <h3>转换设置</h3>
+          </div>
+
+          <div className="vg-section">
+            <div className="vg-section-label">输出质量</div>
+            <div className="vg-quality-row">
+              {QUALITIES.map(p => (
+                <button
+                  key={p.key}
+                  className={`vg-quality-btn ${q === p.v ? "on" : ""}`}
+                  onClick={() => setQ(p.v)}
+                >{p.label}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="vg-section">
+            <div className="vg-section-label">输出尺寸</div>
+            <div className="vg-slider">
+              <div className="vg-slider-head">
+                <span className="vg-slider-label">宽度</span>
+                <span className="vg-slider-val">{w} px</span>
+              </div>
+              <input type="range" min={160} max={1280} step={40} value={w}
+                     onChange={e => setW(+e.target.value)} className="vg-range" />
+            </div>
+            <div className="vg-slider">
+              <div className="vg-slider-head">
+                <span className="vg-slider-label">帧率</span>
+                <span className="vg-slider-val">{f} FPS</span>
+              </div>
+              <input type="range" min={5} max={30} step={5} value={f}
+                     onChange={e => setF(+e.target.value)} className="vg-range" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Output Result */}
-      {gifResult && (
-        <div className="output-bar">
-          <span className="output-success">✅ 转换完成</span>
-          <button
-            className="btn"
-            onClick={() => showInExplorer(gifResult.output_path)}
-          >
-            📁 在文件夹中显示
-          </button>
-        </div>
-      )}
+      {/* 底部操作栏 */}
+      <div className="vg-footer">
+        {busy
+          ? (<div className="vg-progress"><div className="vg-spinner"/><span className="vg-progress-label">正在转换 {done + 1}/{pend + done}...</span></div>)
+          : (<>
+              <button className="vg-start-btn" onClick={start} disabled={!pend}>
+                ▶ 开始转换{pend ? ` (${pend})` : ""}
+              </button>
+              {done > 0 && <span className="vg-status-text">✅ 已完成 {done} 个</span>}
+              {fail > 0 && <span className="vg-status-text vg-status-text--err">❌ 失败 {fail} 个</span>}
+            </>)
+        }
+      </div>
     </div>
   );
 }

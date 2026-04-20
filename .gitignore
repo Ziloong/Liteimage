@@ -24,5 +24,12 @@ Thumbs.db
 *.bak
 *~
 
+# Build outputs (keep source only)
+LiteImage.exe
+*.exe
+
+# Vite dev files (use dist/ for production)
+index.html
+
 # User data (keep sample/configs in resources if needed)
 C:/Users/*/AppData/Local/LiteImage/

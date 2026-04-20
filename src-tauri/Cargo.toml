@@ -1,0 +1,37 @@
+[package]
+name = "liteimage"
+version = "1.0.0"
+description = "轻图 LiteImage - Windows 图片压缩工具"
+authors = ["Ziloong"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+tempfile = "3"
+base64 = "0.22"
+log = "0.4"
+tokio = { version = "1.52.1", features = ["rt-multi-thread"] }
+image = "0.25"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "z"
+panic = "abort"
+
+[profile.debug-release]
+inherits = "release"
+strip = false
+lto = false
+codegen-units = 16
+opt-level = 0
+debug = true
+panic = "unwind"

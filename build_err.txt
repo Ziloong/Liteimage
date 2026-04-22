@@ -1,0 +1,108 @@
+﻿cargo :    Compiling liteimage v1.0.0 (C:\Users\Ziloong\LiteImage-Windows\src-tauri)
+所在位置 行:1 字符: 213
++ ... loong\LiteImage-Windows\src-tauri; cargo build --release 2>&1 | Out-F ...
++                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling li...dows\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+error: expected one of `,`, `:`, `@`, or `|`, found `==`
+   --> src\main.rs:288:78
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+    |                                                                              ^^ expected one of `,`, `:`, `@`, or
+ `|`
+
+error: expected one of `!`, `#`, `&`, `(`, `,`, `-`, `...`, `..=`, `..`, `:`, `@`, `[`, `_`, `box`, `mut`, `ref`, `|`, 
+identifier, or path, found `==`
+   --> src\main.rs:288:78
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+    |                                              ----------------------------    ^^ expected one of 19 possible token
+s
+    |                                              |
+    |                                              while parsing the body of this closure
+    |
+help: you might have meant to open the body of the closure
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) | {| c == ','}) {
+    |                                                                           +          +
+
+error[E0573]: expected type, found local variable `c`
+   --> src\main.rs:288:70
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+    |                                                                      ^ not a type
+
+error: argument types not allowed with return type notation
+   --> src\main.rs:288:69
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+    |                                                                     ^^^
+    |
+help: remove the input types
+    |
+288 -                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+288 +                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(..) || c == ',') {
+    |
+
+error[E0308]: mismatched types
+   --> src\main.rs:94:37
+    |
+ 94 |   ) -> Result<CompressResult, String> {
+    |  _____________________________________^
+ 95 | |     log::info!("compress_image called: input={}, quality={}, overwrite={}, max_edge={}", input_path, quality_ra
+nge, overwrite, ma...
+ 96 | |     tokio::task::spawn_blocking(move || {
+ 97 | |         let path = PathBuf::from(&input_path);
+...   |
+164 | |     }).await.map_err(|e| format!("Compression task failed: {}", e))??;
+165 | | }
+    | |_^ expected `Result<CompressResult, String>`, found `()`
+    |
+    = note:   expected enum `Result<CompressResult, std::string::String>`
+            found unit type `()`
+
+error[E0277]: the `?` operator can only be used on `Result`s, not `Option`s, in a closure that returns `Result`
+   --> src\main.rs:236:115
+    |
+177 |     tokio::task::spawn_blocking(move || {
+    |                                 ------- this function returns a `Result`
+...
+236 |         Ok(GifResult { output_path: final_path.to_str().unwrap().into(), file_size: fs::metadata(&final_path).ok(
+)?.len() })
+    |                                                                                                                  
+ ^ use `.ok_or(...)?` to provide an error compatible with `Result<_, std::string::String>`
+
+error[E0308]: mismatched types
+   --> src\main.rs:303:5
+    |
+301 |   async fn get_video_info(input_path: String) -> Result<VideoInfo, String> {
+    |                                                  ------------------------- expected `Result<VideoInfo, std::strin
+g::String>` because of return type
+302 |       log::info!("get_video_info called: input={}", input_path);
+303 | /     tokio::task::spawn_blocking(move || {
+304 | |         let resources_dir = get_resources_dir()?;
+305 | |         let ffmpeg_path = resources_dir.join("ffmpeg.exe");
+...   |
+319 | |         parse_ffmpeg_info(&stderr, file_size)
+320 | |     }).await.map_err(|e| format!("get_video_info task failed: {}", e))
+    | |______________________________________________________________________^ expected `Result<VideoInfo, String>`, fo
+und `Result<Result<VideoInfo, String>, ...>`
+    |
+    = note: expected enum `Result<VideoInfo, _>`
+               found enum `Result<Result<VideoInfo, std::string::String>, _>`
+help: use the `?` operator to extract the `Result<Result<VideoInfo, std::string::String>, std::string::String>` value, 
+propagating a `Result::Err` value to the caller
+    |
+320 |     }).await.map_err(|e| format!("get_video_info task failed: {}", e))?
+    |                                                                       +
+
+error: return type notation not allowed in this position yet
+   --> src\main.rs:288:50
+    |
+288 |                 if let Some(sp) = tail.rfind(|c: char::is_whitespace(c) || c == ',') {
+    |                                                  ^^^^^^^^^^^^^^^^^^^^^^
+
+Some errors have detailed explanations: E0277, E0308, E0573.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `liteimage` (bin "liteimage") due to 8 previous errors

@@ -38,9 +38,8 @@ fn extract_all_resources(dir: &PathBuf) -> Result<(), String> {
     
     log::info!("提取内置资源到: {:?}", dir);
     
-    // 提取可执行文件（ffmpeg/ffprobe 是静态编译，不需要 DLL）
+    // 提取可执行文件（ffmpeg 是静态编译，不需要 DLL）
     extract_resource(dir, "ffmpeg.exe", include_bytes!("../../resources/ffmpeg.exe"))?;
-    extract_resource(dir, "ffprobe.exe", include_bytes!("../../resources/ffprobe.exe"))?;
     extract_resource(dir, "gifski.exe", include_bytes!("../../resources/gifski.exe"))?;
     extract_resource(dir, "pngquant.exe", include_bytes!("../../resources/pngquant.exe"))?;
     

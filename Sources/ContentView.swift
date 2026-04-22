@@ -107,7 +107,7 @@ struct ImageCompressView: View {
                         onTap: {
                             showFilePicker = true
                         },
-                        acceptedExtensions: ["png", "jpg", "jpeg", "gif"]
+                        acceptedExtensions: ["png", "jpg", "jpeg"]
                     )
                     .padding(.horizontal)
 
@@ -221,7 +221,7 @@ struct ImageCompressView: View {
         }
         .fileImporter(
             isPresented: $showFilePicker,
-            allowedContentTypes: [.png, .jpeg, .gif, .image],
+            allowedContentTypes: [.png, .jpeg, .image],
             allowsMultipleSelection: true
         ) { result in
             switch result {

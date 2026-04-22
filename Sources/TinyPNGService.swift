@@ -79,12 +79,12 @@ class TinyPNGService {
         }
     }
     
-    func compressImage(at url: URL) async throws -> CompressionResult {
+    func compressImage(at inputURL: URL, outputURL: URL? = nil) async throws -> CompressionResult {
         guard let key = apiKey, !key.isEmpty else {
             throw TinyPNGError.noAPIKey
         }
         
-        let imageData = try Data(contentsOf: url)
+        let imageData = try Data(contentsOf: inputURL)
         
         let auth = Data("api:\(key)".utf8).base64EncodedString()
         
@@ -126,8 +126,9 @@ class TinyPNGService {
         
         let (compressedData, _) = try await URLSession.shared.data(from: downloadRequestURL)
         
-        // Overwrite original file
-        try compressedData.write(to: url, options: .atomic)
+        // Save to output URL (or original if not specified)
+        let finalURL = outputURL ?? inputURL
+        try compressedData.write(to: finalURL, options: .atomic)
         
         return CompressionResult(
             compressedSize: Int64(compressedData.count),

@@ -1,6 +1,7 @@
 import Foundation
 import CoreGraphics
 import ImageIO
+import UniformTypeIdentifiers
 
 /// 本地压缩引擎服务
 /// 使用编译好的 pngquant 和 gifski 命令行工具进行本地图片压缩
@@ -201,61 +202,79 @@ class LocalCompressorService: @unchecked Sendable {
 
     // MARK: - 辅助方法
 
-    /// 按长边等比缩放图片（使用 macOS 内置 sips 工具）
+    /// 按长边等比缩放图片（使用 CoreGraphics，支持缩小和放大）
     /// - Parameters:
     ///   - inputURL: 输入文件 URL
     ///   - outputURL: 输出文件 URL
-    ///   - maxLongEdge: 最大长边像素
+    ///   - maxLongEdge: 目标长边像素
     /// - Returns: true 表示执行了缩放，false 表示图片已经在限制以内无需缩放
     func resizeIfNeeded(inputURL: URL, outputURL: URL, maxLongEdge: Int) async throws -> Bool {
-        // 先读取图片尺寸
-        guard let imageSource = CGImageSourceCreateWithURL(inputURL as CFURL, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
-              let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
-            return false
-        }
-
-        let longEdge = max(width, height)
-        guard longEdge > maxLongEdge else {
-            // 尺寸已经在限制内，不需要缩放
-            return false
-        }
-
-        // 使用 sips 缩放
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                // 先复制文件，sips 默认会原地修改
-                do {
-                    try FileManager.default.copyItem(at: inputURL, to: outputURL)
-                } catch {
-                    continuation.resume(throwing: error)
+                guard let imageSource = CGImageSourceCreateWithURL(inputURL as CFURL, nil),
+                      let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+                    continuation.resume(throwing: CompressionError.unsupportedFormat("无法读取图片"))
                     return
                 }
 
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/bin/sips")
-                process.arguments = [
-                    "--resampleHeightWidthMax", "\(maxLongEdge)",
-                    outputURL.path
-                ]
+                let srcWidth = cgImage.width
+                let srcHeight = cgImage.height
+                let srcLongEdge = max(srcWidth, srcHeight)
 
-                let errorPipe = Pipe()
-                process.standardError = errorPipe
-                process.standardOutput = Pipe()
+                // 如果原图长边已等于目标值，无需缩放
+                if srcLongEdge == maxLongEdge {
+                    continuation.resume(returning: false)
+                    return
+                }
 
-                do {
-                    try process.run()
-                    process.waitUntilExit()
+                // 计算目标尺寸（等比缩放到 maxLongEdge，支持缩小和放大）
+                let ratio = CGFloat(maxLongEdge) / CGFloat(srcLongEdge)
+                let dstWidth = Int(CGFloat(srcWidth) * ratio)
+                let dstHeight = Int(CGFloat(srcHeight) * ratio)
 
-                    if process.terminationStatus == 0 {
-                        continuation.resume(returning: true)
-                    } else {
-                        let errMsg = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? "sips 缩放失败"
-                        continuation.resume(throwing: CompressionError.compressionFailed(errMsg))
-                    }
-                } catch {
-                    continuation.resume(throwing: error)
+                // 创建缩放后的图片
+                guard let colorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB) else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("无法获取颜色空间"))
+                    return
+                }
+
+                guard let context = CGContext(
+                    data: nil,
+                    width: dstWidth,
+                    height: dstHeight,
+                    bitsPerComponent: 8,
+                    bytesPerRow: 0,
+                    space: colorSpace,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+                ) else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("缩放上下文创建失败"))
+                    return
+                }
+
+                context.interpolationQuality = .high
+                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: dstWidth, height: dstHeight))
+
+                guard let resizedImage = context.makeImage() else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("缩放图片生成失败"))
+                    return
+                }
+
+                // 保存到输出 URL
+                let uti: CFString = inputURL.pathExtension.lowercased() == "png"
+                    ? UTType.png.identifier as CFString
+                    : UTType.jpeg.identifier as CFString
+
+                guard let dest = CGImageDestinationCreateWithURL(outputURL as CFURL, uti, 1, nil) else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("输出文件创建失败"))
+                    return
+                }
+
+                CGImageDestinationAddImage(dest, resizedImage, nil)
+
+                if CGImageDestinationFinalize(dest) {
+                    continuation.resume(returning: true)
+                } else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("缩放图片保存失败"))
                 }
             }
         }

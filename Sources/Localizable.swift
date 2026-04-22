@@ -17,7 +17,14 @@ enum L {
     // MARK: - Drop Zone
     static let dropImageTitle = String(localized: "拖放图片到此处")
     static let dropImageSubtitle = String(localized: "或点击选择图片文件")
-    static let dropImageHint = String(localized: "支持 PNG / JPG / GIF")
+    static let dropImageHint = String(localized: "支持 PNG / JPG")
+    static let dropUnifiedTitle = String(localized: "拖放视频或 GIF 文件（可多选）")
+    static let dropUnifiedSubtitle = String(localized: "或点击选择文件")
+    static let dropUnifiedHint = String(localized: "支持 MP4 / MOV / M4V / GIF")
+    static let addMoreFiles = String(localized: "继续添加文件...")
+    static let gifFooterHint = String(localized: "转换后的 GIF 将保存在原视频所在目录")
+    static let statCompleted = String(localized: "已完成")
+    static let statFailed = String(localized: "失败")
     static let dropVideoTitle = String(localized: "拖放视频文件到这里")
     static let dropVideoSubtitle = String(localized: "或点击选择文件")
     static let dropVideoHint = String(localized: "支持 MP4, MOV, M4V")
@@ -56,6 +63,28 @@ enum L {
     static let width = String(localized: "宽度")
     static let framerate = String(localized: "帧率")
 
+    // MARK: - GIF Tab
+    static let videoToGIFTab = String(localized: "视频转 GIF")
+    static let gifCompressTab = String(localized: "GIF 压缩")
+
+    // MARK: - Batch Video
+    static let batchVideo = String(localized: "批量视频")
+    static let dropVideoBatch = String(localized: "拖放视频文件（可多选）")
+    static let clearAll = String(localized: "清空")
+    static let removeVideo = String(localized: "移除")
+    static let batchConversion = String(localized: "批量转换")
+    static let stopConversion = String(localized: "停止")
+    static let openInFinder = String(localized: "打开")
+
+    // MARK: - GIF Compression
+    static let dropGIFTitle = String(localized: "拖放 GIF 文件（可多选）")
+    static let dropGIFSubtitle = String(localized: "或点击选择 GIF 文件")
+    static let dropGIFHint = String(localized: "支持 GIF 格式")
+    static let compressGIF = String(localized: "压缩 GIF")
+    static let stopGIFCompression = String(localized: "停止")
+    static let gifCompressionLog = String(localized: "压缩日志")
+    static let waitingForGIFCompression = String(localized: "等待压缩...")
+
     // MARK: - Quality Presets
     static let ultraLowQuality = String(localized: "超低质量")
     static let lowQuality = String(localized: "低质量")
@@ -69,6 +98,7 @@ enum L {
     // MARK: - Settings
     static let apiKeySettings = String(localized: "API Key 设置")
     static let apiKeyHint = String(localized: "在 tinypng.com/developers 免费申请，每月可压缩 500 张")
+    static let getFreeAPIKey = String(localized: "前往申请免费 API Key")
     static let apiKey = String(localized: "API Key")
     static let inputAPIKey = String(localized: "输入 API Key")
     static let close = String(localized: "关闭")
@@ -77,6 +107,8 @@ enum L {
     static let save = String(localized: "保存")
     static let apiKeyValid = String(localized: "✅ API Key 有效！本月已用 %d 次，剩余 %d 次")
     static let saved = String(localized: "✅ 已保存")
+    static let repoLabel = String(localized: "项目仓库地址")
+    static let feishuDocLabel = String(localized: "飞书文档")
 
     // MARK: - Errors
     static let unknownError = String(localized: "未知错误")

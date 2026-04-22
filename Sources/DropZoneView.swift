@@ -5,7 +5,7 @@ struct DropZoneView: View {
     @Binding var isTargeted: Bool
     let onDrop: ([URL]) -> Void
     let onTap: () -> Void
-    var acceptedExtensions: [String] = ["png", "jpg", "jpeg", "gif"]
+    var acceptedExtensions: [String] = ["png", "jpg", "jpeg"]
     var dropTitle: String = L.dropImageTitle
     var dropSubtitle: String = L.dropImageSubtitle
     var dropHint: String = L.dropImageHint

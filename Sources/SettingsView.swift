@@ -22,6 +22,21 @@ struct SettingsView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+
+                Button(action: {
+                    if let url = URL(string: "https://tinypng.com/developers") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption)
+                        Text(L.getFreeAPIKey)
+                            .font(.subheadline)
+                            .foregroundColor(.accentColor)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             .padding(.top, 20)
             
@@ -89,8 +104,47 @@ struct SettingsView: View {
                 .disabled(apiKey.isEmpty)
             }
             .padding(.bottom, 20)
+
+            // 底部链接
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Text(L.feishuDocLabel)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button(action: {
+                        if let url = URL(string: "https://my.feishu.cn/wiki/HsGqwApFRiAkBTkEogicP47VnxF") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        Text("my.feishu.cn/wiki/HsGqwApFRiAkBTkEogicP47VnxF")
+                            .font(.caption)
+                            .foregroundColor(.accentColor)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                HStack(spacing: 4) {
+                    Text(L.repoLabel)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Button(action: {
+                        if let url = URL(string: "https://github.com/Ziloong/Liteimage") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }) {
+                        Text("github.com/Ziloong/Liteimage")
+                            .font(.caption)
+                            .foregroundColor(.accentColor)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 12)
         }
-        .frame(width: 400, height: 280)
+        .frame(width: 400, height: 360)
         .onAppear {
             apiKey = service.apiKey ?? ""
         }

@@ -11,7 +11,14 @@
 /* Drop Zone */
 "拖放图片到此处" = "Drop images here";
 "或点击选择图片文件" = "or click to select files";
-"支持 PNG / JPG / GIF" = "Supports PNG / JPG / GIF";
+"支持 PNG / JPG / GIF" = "Supports PNG / JPG";
+"拖放视频或 GIF 文件（可多选）" = "Drop video or GIF files (multiple supported)";
+"或点击选择文件" = "or click to select";
+"支持 MP4 / MOV / M4V / GIF" = "Supports MP4, MOV, M4V, GIF";
+"继续添加文件..." = "Add more files...";
+"转换后的 GIF 将保存在原视频所在目录" = "Converted GIFs will be saved in the original video's directory";
+"已完成" = "Completed";
+"失败" = "Failed";
 "拖放视频文件到这里" = "Drop video file here";
 "或点击选择文件" = "or click to select";
 "支持 MP4, MOV, M4V" = "Supports MP4, MOV, M4V";
@@ -50,6 +57,28 @@
 "宽度" = "Width";
 "帧率" = "Frame Rate";
 
+/* GIF Tab */
+"视频转 GIF" = "Video to GIF";
+"GIF 压缩" = "Compress GIF";
+
+/* Batch Video */
+"批量视频" = "Batch Videos";
+"拖放视频文件（可多选）" = "Drop video files (multiple supported)";
+"清空" = "Clear All";
+"移除" = "Remove";
+"批量转换" = "Batch Convert";
+"停止" = "Stop";
+"打开" = "Open";
+
+/* GIF Compression */
+"拖放 GIF 文件（可多选）" = "Drop GIF files (multiple supported)";
+"或点击选择 GIF 文件" = "or click to select GIF files";
+"支持 GIF 格式" = "Supports GIF format";
+"压缩 GIF" = "Compress GIF";
+"停止" = "Stop";
+"压缩日志" = "Compression Log";
+"等待压缩..." = "Waiting for compression...";
+
 /* Quality Presets */
 "低质量" = "Low";
 "中等质量" = "Medium";
@@ -61,6 +90,7 @@
 /* Settings */
 "API Key 设置" = "API Key Settings";
 "在 tinypng.com/developers 免费申请，每月可压缩 500 张" = "Get free API key at tinypng.com/developers, 500 compressions/month";
+"前往申请免费 API Key" = "Go get a free API Key →";
 "API Key" = "API Key";
 "输入 API Key" = "Enter API Key";
 "关闭" = "Close";
@@ -69,6 +99,8 @@
 "保存" = "Save";
 "✅ API Key 有效！本月已用 %d 次，剩余 %d 次" = "✅ API Key valid! Used %d times this month, %d remaining.";
 "✅ 已保存" = "✅ Saved";
+"项目仓库地址" = "Repository";
+"飞书文档" = "Feishu Doc";
 
 /* Errors */
 "未知错误" = "Unknown error";

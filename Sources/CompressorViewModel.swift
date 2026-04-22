@@ -40,7 +40,7 @@ class CompressorViewModel: ObservableObject {
     }
 
     // 支持的文件扩展名
-    static let supportedExtensions: [String] = ["png", "jpg", "jpeg", "gif"]
+    static let supportedExtensions: [String] = ["png", "jpg", "jpeg"]
 
     func compressFiles(_ urls: [URL]) {
         guard !urls.isEmpty else { return }
@@ -92,7 +92,17 @@ class CompressorViewModel: ObservableObject {
 
             switch selectedEngine {
             case .tinyPNG:
-                result = try await tinyPNGService.compressImage(at: url)
+                // 根据设置决定输出路径
+                let tinyPNGOutputURL: URL
+                if shouldOverwrite {
+                    tinyPNGOutputURL = url
+                } else {
+                    let originalName = url.deletingPathExtension().lastPathComponent
+                    tinyPNGOutputURL = url.deletingLastPathComponent()
+                        .appendingPathComponent("\(originalName)-compressed.\(url.pathExtension.lowercased())")
+                }
+                
+                result = try await tinyPNGService.compressImage(at: url, outputURL: tinyPNGOutputURL)
                 await MainActor.run {
                     monthlyUsed = result.compressionCount
                 }
@@ -140,8 +150,6 @@ class CompressorViewModel: ObservableObject {
         switch ext {
         case "png", "jpg", "jpeg":
             _ = try await localService.compressPNG(inputURL: processURL, outputURL: outputURL, qualityRange: localQuality.pngquantRange)
-        case "gif":
-            _ = try await localService.compressGIF(inputURL: url, outputURL: outputURL)
         default:
             throw LocalCompressorService.CompressionError.unsupportedFormat(ext)
         }

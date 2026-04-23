@@ -72,7 +72,7 @@ class GIFConverterViewModel: ObservableObject {
     @Published var selectedVideos: [VideoItem] = []
     @Published var selectedQuality: GIFQualityPreset = .medium
     @Published var outputWidth: Int = 480
-    @Published var frameRate: Int = 15
+    @Published var frameRate: Int = 25
     @Published var isConverting: Bool = false
     @Published var totalProgress: Double = 0
     @Published var conversionLogs: [String] = []
@@ -109,7 +109,7 @@ class GIFConverterViewModel: ObservableObject {
             guard url.startAccessingSecurityScopedResource() else { continue }
             defer { url.stopAccessingSecurityScopedResource() }
             
-            var item = VideoItem(url: url)
+            let item = VideoItem(url: url)
             selectedVideos.append(item)
             
             // 异步获取视频信息

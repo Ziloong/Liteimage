@@ -35,7 +35,7 @@ export default function VideoToGif() {
   const [vs, setVs] = useState<VItem[]>([]);
   const [q, setQ] = useState(70);
   const [w, setW] = useState(480);
-  const [f, setF] = useState(15);
+  const [f, setF] = useState(25);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
 
@@ -56,13 +56,17 @@ export default function VideoToGif() {
   }, []);
 
   async function getInfo(p: string): Promise<VideoInfo | null> {
-    try { return await invoke<VideoInfo>("get_video_info", { inputPath: p }); }
-    catch { return null; }
+    try { 
+      return await invoke<VideoInfo>("get_video_info", { inputPath: p });
+    } catch (e) { 
+      return null; 
+    }
   }
 
   async function add(paths: string[]) {
-    const exts = ["mp4","mov","m4v","avi","mkv","webm"];
-    const ok = paths.filter(p => exts.includes(p.split(".").pop()!.toLowerCase()));
+    const videoExts = ["mp4","mov","m4v","avi","mkv","webm"];
+    const allExts = [...videoExts, "gif"];
+    const ok = paths.filter(p => allExts.includes(p.split(".").pop()!.toLowerCase()));
     if (!ok.length) return;
 
     const neu: VItem[] = ok.map(p => ({ id: crypto.randomUUID(), path: p, info: null, st: "wait" as const }));
@@ -71,7 +75,11 @@ export default function VideoToGif() {
     for (let i = 0; i < ok.length; i++) {
       const info = await getInfo(ok[i]);
       setVs(prev => prev.map(v => v.id === neu[i].id ? { ...v, info } : v));
-      if (i === 0 && info?.width) setW(Math.min(info.width, 1280));
+      // 第一个文件自动填充宽度和帧率
+      if (i === 0 && info) {
+        setW(Math.max(Math.min(info.width, 1280), 160));
+        setF(Math.max(Math.round(info.fps), 5));
+      }
     }
   }
 
@@ -79,7 +87,7 @@ export default function VideoToGif() {
     try {
       const s = await open({
         multiple: true,
-        filters: [{ name: "视频", extensions: ["mp4","mov","m4v","avi","mkv","webm"] }],
+        filters: [{ name: "视频/GIF", extensions: ["mp4","mov","m4v","avi","mkv","webm","gif"] }],
       });
       if (s?.length) add(s as string[]);
     } catch {}
@@ -205,6 +213,13 @@ export default function VideoToGif() {
               <input type="range" min={5} max={30} step={5} value={f}
                      onChange={e => setF(+e.target.value)} className="vg-range" />
             </div>
+          </div>
+
+          {/* 链接区域 */}
+          <div className="vg-links">
+            <a href="https://my.feishu.cn/wiki/HsGqwApFRiAkBTkEogicP47VnxF?from=from_copylink" target="_blank" rel="noopener noreferrer">飞书文档</a>
+            <span className="vg-link-sep">|</span>
+            <a href="https://github.com/Ziloong/Liteimage" target="_blank" rel="noopener noreferrer">Github 仓库</a>
           </div>
         </div>
       </div>

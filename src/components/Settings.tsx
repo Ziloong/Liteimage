@@ -64,10 +64,18 @@ export default function Settings({ onClose }: SettingsProps) {
       <div className="modal-content">
         <div className="modal-title">API Key 设置</div>
         <div className="modal-subtitle">
-          在 tinypng.com/developers 免费申请，每月可压缩 500 张
+          <a href="https://tinypng.com/developers" target="_blank" rel="noopener noreferrer">在 tinypng.com/developers 免费申请</a>
+          ，每月可压缩 500 张
         </div>
 
         <div className="modal-divider" />
+
+        {/* 链接区域 */}
+        <div className="modal-links">
+          <a href="https://my.feishu.cn/wiki/HsGqwApFRiAkBTkEogicP47VnxF?from=from_copylink" target="_blank" rel="noopener noreferrer">飞书文档</a>
+          <span className="modal-link-sep">|</span>
+          <a href="https://github.com/Ziloong/Liteimage" target="_blank" rel="noopener noreferrer">Github 仓库</a>
+        </div>
 
         <div className="modal-label">API Key</div>
         <div className="api-input-row">

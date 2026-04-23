@@ -19,6 +19,7 @@ base64 = "0.22"
 log = "0.4"
 tokio = { version = "1.52.1", features = ["rt-multi-thread"] }
 image = "0.25"
+regex = "1"
 
 [profile.release]
 strip = true

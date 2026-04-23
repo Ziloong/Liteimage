@@ -110,7 +110,7 @@ async fn compress_image(
         };
 
         // Resize if needed
-        let process_path = if max_long_edge > 0 && (ext == "png" || ext == "jpg" || ext == "jpeg") {
+        let (process_path, temp_dir) = if max_long_edge > 0 && (ext == "png" || ext == "jpg" || ext == "jpeg") {
             let img = image::open(&path).map_err(|e| format!("无法读取图片: {}", e))?;
             let (orig_w, orig_h) = img.dimensions();
             let (new_w, new_h) = if orig_w > orig_h {
@@ -120,11 +120,19 @@ async fn compress_image(
                 let ratio = max_long_edge as f32 / orig_h as f32;
                 ((orig_w as f32 * ratio) as u32, max_long_edge)
             };
-            let resized = image::imageops::resize(&img.to_rgba8(), new_w, new_h, image::imageops::FilterType::Lanczos3);
-            let resized_path = tempfile::tempdir().map_err(|e| e.to_string())?.path().join(format!("resized_{}.{}", std::process::id(), ext));
-            resized.save(&resized_path).map_err(|e| format!("缩放保存失败: {}", e))?;
-            resized_path.to_path_buf()
-        } else { path.clone() };
+            let resized = image::imageops::resize(&img.to_rgba8(), new_w, new_h, image::imageops::FilterType::CatmullRom);
+            let temp_dir = tempfile::tempdir().map_err(|e| e.to_string())?;
+            // 扩展名不带点，且根据格式使用正确的 ImageOutputFormat
+            let resized_path = temp_dir.path().join(format!("resized_{}.{}", std::process::id(), ext.trim_start_matches('.')));
+            if ext == "png" {
+                resized.save_with_format(&resized_path, image::ImageFormat::Png)
+                    .map_err(|e| format!("缩放保存失败: {}", e))?;
+            } else {
+                resized.save_with_format(&resized_path, image::ImageFormat::Jpeg)
+                    .map_err(|e| format!("缩放保存失败: {}", e))?;
+            }
+            (resized_path.to_path_buf(), Some(temp_dir))
+        } else { (path.clone(), None) };
 
         // Compress by format
         match ext.as_str() {
@@ -133,7 +141,7 @@ async fn compress_image(
                 if !pngquant_path.exists() { return Err("找不到 pngquant.exe".to_string()); }
 
                 let output = std::process::Command::new(&pngquant_path)
-                    .args([&format!("--quality={}", quality_range), "--speed", "4", "--force", "--output", output_path.to_str().unwrap(), process_path.to_str().unwrap()])
+                    .args([&format!("--quality={}", quality_range), "--speed", "4", "--strip", "--skip-if-larger", "--force", "--output", output_path.to_str().unwrap(), process_path.to_str().unwrap()])
                     .creation_flags(CREATE_NO_WINDOW).output()
                     .map_err(|e| format!("pngquant 执行失败: {}", e))?;
                 if !output.status.success() {
@@ -180,49 +188,105 @@ async fn convert_video_to_gif(
         let gifski_path = resources_dir.join("gifski.exe");
 
         let temp_dir = tempfile::tempdir().map_err(|e| e.to_string())?;
-        let frames_dir = temp_dir.path().join("frames");
-        fs::create_dir_all(&frames_dir).map_err(|e| e.to_string())?;
 
-        // Step 1: Extract frames with ffmpeg
-        let frames_pattern = frames_dir.join("frame_%04d.png");
-        let output = std::process::Command::new(&ffmpeg_path)
-            .args([
-                "-y", "-ss", &format!("{:.2}", start_time), "-t", &format!("{:.2}", duration),
-                "-i", &input_path, "-vf", &format!("scale={}:-1:flags=lanczos,fps={}", width, fps),
-                "-q:v", "1", frames_pattern.to_str().unwrap(),
-            ])
-            .creation_flags(CREATE_NO_WINDOW).output()
-            .map_err(|e| format!("ffmpeg 执行失败: {}", e))?;
+        // 检测是否为 GIF 文件
+        let is_gif = input_path.to_lowercase().ends_with(".gif");
 
-        if !output.status.success() {
-            return Err(format!("ffmpeg 提取帧失败: {}", String::from_utf8_lossy(&output.stderr)));
-        }
+        let output_gif = if is_gif {
+            // GIF 文件：直接用 gifski 压缩重编码
+            let compressed_gif = temp_dir.path().join("compressed.gif");
+            let output = std::process::Command::new(&gifski_path)
+                .args([
+                    "-Q", &quality.to_string(),
+                    "-W", &width.to_string(),
+                    "-o", compressed_gif.to_str().unwrap(),
+                    &input_path,
+                ])
+                .creation_flags(CREATE_NO_WINDOW).output()
+                .map_err(|e| format!("GIF 压缩失败: {}", e))?;
 
-        // Collect frames
-        let mut frame_files: Vec<PathBuf> = fs::read_dir(&frames_dir)
-            .map_err(|e| e.to_string())?
-            .filter_map(|e| e.ok()).map(|e| e.path())
-            .filter(|p| p.extension().map(|ext| ext == "png").unwrap_or(false))
-            .collect();
-        frame_files.sort();
+            if !output.status.success() {
+                return Err(format!("GIF 压缩失败: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+            compressed_gif
+        } else {
+            // 视频文件：ffmpeg 提取帧 + gifski 合成
+            let frames_dir = temp_dir.path().join("frames");
+            fs::create_dir_all(&frames_dir).map_err(|e| e.to_string())?;
 
-        if frame_files.is_empty() { return Err("未能提取任何帧".to_string()); }
+            // Step 1: Extract frames with ffmpeg
+            let frames_pattern = frames_dir.join("frame_%04d.png");
+            let output = std::process::Command::new(&ffmpeg_path)
+                .args([
+                    "-y", "-ss", &format!("{:.2}", start_time), "-t", &format!("{:.2}", duration),
+                    "-i", &input_path, "-vf", &format!("scale={}:-1:flags=lanczos,fps={}", width, fps),
+                    "-q:v", "1", frames_pattern.to_str().unwrap(),
+                ])
+                .creation_flags(CREATE_NO_WINDOW).output()
+                .map_err(|e| format!("ffmpeg 执行失败: {}", e))?;
 
-        // Step 2: Compose GIF with gifski
-        let output_gif = temp_dir.path().join("output.gif");
-        let mut args: Vec<String> = vec![
-            "-Q".into(), quality.to_string(), "-W".into(), width.to_string(), "-r".into(), fps.to_string(),
-            "-o".into(), output_gif.to_str().unwrap().into(),
-        ];
-        for f in &frame_files { args.push(f.to_str().unwrap().into()); }
+            if !output.status.success() {
+                return Err(format!("ffmpeg 提取帧失败: {}", String::from_utf8_lossy(&output.stderr)));
+            }
 
-        let output = std::process::Command::new(&gifski_path)
-            .args(&args).creation_flags(CREATE_NO_WINDOW).output()
-            .map_err(|e| format!("gifski 执行失败: {}", e))?;
+            // Collect frames
+            let mut frame_files: Vec<PathBuf> = fs::read_dir(&frames_dir)
+                .map_err(|e| e.to_string())?
+                .filter_map(|e| e.ok()).map(|e| e.path())
+                .filter(|p| p.extension().map(|ext| ext == "png").unwrap_or(false))
+                .collect();
+            frame_files.sort();
 
-        if !output.status.success() {
-            return Err(format!("gifski 合成失败: {}", String::from_utf8_lossy(&output.stderr)));
-        }
+            if frame_files.is_empty() { return Err("未能提取任何帧".to_string()); }
+
+            // Step 2: Compose GIF with gifski
+            let gif_output = temp_dir.path().join("output.gif");
+            let mut args: Vec<String> = vec![
+                "-Q".into(), quality.to_string(), "-W".into(), width.to_string(), "-r".into(), fps.to_string(),
+                "-o".into(), gif_output.to_str().unwrap().into(),
+            ];
+            for f in &frame_files { args.push(f.to_str().unwrap().into()); }
+
+            let output = std::process::Command::new(&gifski_path)
+                .args(&args).creation_flags(CREATE_NO_WINDOW).output()
+                .map_err(|e| format!("gifski 执行失败: {}", e))?;
+
+            if !output.status.success() {
+                return Err(format!("gifski 合成失败: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+            gif_output
+        };
+
+        // Step 3: 进一步压缩（仅对非 GIF 输入执行，视频转 GIF 已内含压缩）
+        let final_gif = if !is_gif {
+            let compressed_gif = temp_dir.path().join("final.gif");
+            let compress_output = std::process::Command::new(&gifski_path)
+                .args([
+                    "-Q", &quality.to_string(),
+                    "-W", &width.to_string(),
+                    "-o", compressed_gif.to_str().unwrap(),
+                    output_gif.to_str().unwrap(),
+                ])
+                .creation_flags(CREATE_NO_WINDOW).output()
+                .map_err(|e| format!("GIF 压缩失败: {}", e))?;
+
+            if !compress_output.status.success() {
+                log::warn!("GIF 压缩失败，使用原始 GIF");
+                output_gif.to_path_buf()
+            } else {
+                let orig_size = fs::metadata(&output_gif).map_err(|e| e.to_string())?.len();
+                let comp_size = fs::metadata(&compressed_gif).map_err(|e| e.to_string())?.len();
+                if comp_size < orig_size {
+                    log::info!("GIF 压缩成功: {} -> {} (节省 {}%)", orig_size, comp_size, (orig_size - comp_size) * 100 / orig_size);
+                    compressed_gif
+                } else {
+                    log::info!("GIF 压缩后反而更大，保留原版");
+                    output_gif.to_path_buf()
+                }
+            }
+        } else {
+            output_gif.to_path_buf()
+        };
 
         // Move result
         let input = PathBuf::from(&input_path);
@@ -231,66 +295,47 @@ async fn convert_video_to_gif(
         let final_path = parent.join(format!("{}_converted.gif", stem));
 
         if final_path.exists() { fs::remove_file(&final_path).map_err(|e| e.to_string())?; }
-        fs::copy(&output_gif, &final_path).map_err(|e| e.to_string())?;
+        fs::copy(&final_gif, &final_path).map_err(|e| e.to_string())?;
 
         Ok(GifResult { output_path: final_path.to_str().unwrap().into(), file_size: fs::metadata(&final_path).map_err(|e| e.to_string())?.len() })
     }).await.map_err(|e| format!("Video conversion task failed: {}", e))?
 }
 
 /// Parse video info from ffmpeg stderr output
-/// ffmpeg stderr example:
-///   Duration: 00:00:05.23, start: 0.000000, bitrate: 4523 kb/s
-///     Stream #0:0(eng): Video: h264 (High), yuv420p(progressive), 1280x720 [SAR 1:1 DAR 16:9], 29.97 fps, ...
 fn parse_ffmpeg_info(stderr: &str, file_size: u64) -> Result<VideoInfo, String> {
     let mut duration = 0.0f64;
     let mut width = 0u32;
     let mut height = 0u32;
     let mut fps = 0.0f64;
 
-    for line in stderr.lines() {
-        // Parse Duration: HH:MM:SS.mm (only on non-Stream lines)
-        if line.contains("Duration:") && !line.contains("Stream ") {
-            if let Some(dp) = line.split("Duration:").nth(1) {
-                let ds = dp.split(',').next().unwrap_or("").trim();
-                let p: Vec<&str> = ds.split(':').collect();
-                if p.len() >= 3 {
-                    duration = p[0].parse().unwrap_or(0.0) * 3600.0 +
-                               p[1].parse().unwrap_or(0.0) * 60.0 +
-                               p[2].parse().unwrap_or(0.0);
-                }
+    // Use regex for reliable parsing - avoid false matches on hex codes like 0x1, 0x31637661
+    let re_res: regex::Regex = regex::Regex::new(r"(\d{2,5})x(\d{2,5})").unwrap();
+    let re_fps: regex::Regex = regex::Regex::new(r"[\s,](\d+(?:\.\d+)?)\s*fps").unwrap();
+    let re_dur: regex::Regex = regex::Regex::new(r"Duration:\s*(\d+):(\d+):([\d.]+)").unwrap();
+
+    if let Some(c) = re_dur.captures(stderr) {
+        let h: f64 = c.get(1).map_or("0", |m| m.as_str()).parse().unwrap_or(0.0);
+        let m: f64 = c.get(2).map_or("0", |m| m.as_str()).parse().unwrap_or(0.0);
+        let s: f64 = c.get(3).map_or("0", |m| m.as_str()).parse().unwrap_or(0.0);
+        duration = h * 3600.0 + m * 60.0 + s;
+    }
+
+    // Find resolution: pattern NxN where both N >= 10 (skip hex like 0x1)
+    if let Some(c) = re_res.captures(stderr) {
+        if let (Ok(wv), Ok(hv)) = (
+            c.get(1).map(|m| m.as_str()).unwrap_or("0").parse::<u32>(),
+            c.get(2).map(|m| m.as_str()).unwrap_or("0").parse::<u32>(),
+        ) {
+            if wv >= 10 && wv <= 10000 && hv >= 10 && hv <= 10000 {
+                width = wv; height = hv;
             }
         }
+    }
 
-        // Parse video stream info
-        if !line.contains("Video ") { continue; }
-
-        // Extract WxH resolution - find "NxN" pattern around 'x' or 'X'
-        for (i, b) in line.bytes().enumerate() {
-            if b == b'x' || b == b'X' {
-                // scan backwards for width digits
-                let mut ws = i;
-                while ws > 0 && line.as_bytes()[ws - 1].is_ascii_digit() { ws -= 1; }
-                // scan forwards for height digits
-                let hs = if b == b'x' || b == b'X' { i + 1 } else { i + 2 };
-                let mut he = hs;
-                while he < line.len() && line.as_bytes()[he].is_ascii_digit() { he += 1; }
-                if let (Ok(wv), Ok(hv)) = (line[ws..i].parse::<u32>(), line[hs..he].parse::<u32>()) {
-                    if wv >= 10 && wv <= 10000 && hv >= 10 && hv <= 10000 { width = wv; height = hv; }
-                }
-                break;
-            }
-        }
-
-        // Extract FPS value before "fps"
-        for kw in [" fps", "fps,"] {
-            if let Some(pos) = line.find(kw) {
-                let tail = line[..pos].trim_end();
-                if let Some(sp) = tail.rfind(|c: char| c.is_whitespace() || c == ',') {
-                    if let Ok(v) = tail[sp + 1..].parse::<f64>() {
-                        if v > 0.0 && v <= 200.0 { fps = v; break; }
-                    }
-                }
-            }
+    // Find FPS: number before "fps"
+    if let Some(c) = re_fps.captures(stderr) {
+        if let Ok(v) = c.get(1).map(|m| m.as_str()).unwrap_or("0").parse::<f64>() {
+            if v > 0.0 && v <= 200.0 { fps = v; }
         }
     }
 
@@ -301,22 +346,78 @@ fn parse_ffmpeg_info(stderr: &str, file_size: u64) -> Result<VideoInfo, String> 
 async fn get_video_info(input_path: String) -> Result<VideoInfo, String> {
     log::info!("get_video_info called: input={}", input_path);
     tokio::task::spawn_blocking(move || {
+        let file_size = fs::metadata(&input_path).map(|m| m.len()).unwrap_or(0);
+
+        // GIF 文件：尺寸和帧率都用 image crate 获取
+        if input_path.to_lowercase().ends_with(".gif") {
+            // 打开文件获取尺寸
+            if let Ok(img) = image::open(&input_path) {
+                let (width, height) = img.dimensions();
+
+                // 读取帧延迟来计算帧率
+                let fps = if let Ok(file) = std::fs::File::open(&input_path) {
+                    let reader = std::io::BufReader::new(file);
+                    if let Ok(decoder) = image::codecs::gif::GifDecoder::new(reader) {
+                        use image::AnimationDecoder;
+                        let frames = decoder.into_frames();
+                        let delays: Vec<u32> = frames
+                            .filter_map(|f| f.ok())
+                            .map(|f| {
+                                // delay() 返回 (numerator, denominator) 毫秒
+                                // GIF 规范：delay 字段单位是 1/100 秒 = 10ms
+                                // image crate 乘以 100 得到毫秒，所以要除以 100 转回厘秒
+                                let (num, den) = f.delay().numer_denom_ms();
+                                if den > 0 { (num as f64 / den as f64 * 10.0) as u32 } else { 100 }
+                            })
+                            .collect();
+
+                        if !delays.is_empty() {
+                            // 计算平均延迟（单位：厘秒，即 1/100 秒）
+                            let avg_delay: f64 = delays.iter().map(|&d| d as f64).sum::<f64>() / delays.len() as f64;
+                            if avg_delay > 0.0 {
+                                // 转换为 fps: 100 cs = 1 fps, 所以 fps = 100 / delay_cs
+                                let calculated_fps = 100.0 / avg_delay;
+                                if calculated_fps > 0.5 && calculated_fps <= 60.0 {
+                                    calculated_fps
+                                } else {
+                                    15.0
+                                }
+                            } else {
+                                15.0
+                            }
+                        } else {
+                            15.0
+                        }
+                    } else {
+                        15.0
+                    }
+                } else {
+                    15.0
+                };
+
+                log::info!("GIF info: {}x{}, {:.1}fps", width, height, fps);
+                return Ok(VideoInfo { duration: 0.0, width, height, fps, file_size });
+            }
+            return Err("无法读取 GIF 信息".to_string());
+        }
+
+        // 视频文件用 ffmpeg 获取信息
         let resources_dir = get_resources_dir()?;
         let ffmpeg_path = resources_dir.join("ffmpeg.exe");
 
-        // Use ffmpeg to probe video info (replaces ffprobe)
-        // ffmpeg writes info to stderr when using -f null
         let output = std::process::Command::new(&ffmpeg_path)
-            .args(["-i", &input_path, "-f", "null", "-"])
+            .args(["-i", &input_path])
             .creation_flags(CREATE_NO_WINDOW)
             .stderr(std::process::Stdio::piped())
             .stdout(std::process::Stdio::null())
             .output()
             .map_err(|e| format!("ffmpeg 执行失败: {}", e))?;
 
-        let file_size = fs::metadata(&input_path).map(|m| m.len()).unwrap_or(0);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        parse_ffmpeg_info(&stderr, file_size)
+        log::info!("get_video_info ffmpeg stderr (first 500 chars): {}", &stderr.chars().take(500).collect::<String>());
+        let result = parse_ffmpeg_info(&stderr, file_size);
+        log::info!("get_video_info result: {:?}", result);
+        result
     }).await.map_err(|e| format!("get_video_info task failed: {}", e))?
 }
 

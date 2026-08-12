@@ -9,11 +9,13 @@ pip install -r requirements.txt
 pip install pyinstaller
 
 echo [2/3] 打包为 EXE...
-pyinstaller --onefile --windowed --add-data "tools\posterize.exe;tools" --add-data "tools\oxipng.exe;tools" --name "轻图" --icon=NUL main.py
+pyinstaller --onefile --windowed --hidden-import customtkinter --collect-all customtkinter --add-data "tools\posterize.exe;tools" --add-data "tools\oxipng.exe;tools" --name "LiteImage" main.py
 
 echo [3/3] 完成!
 echo.
-echo 输出文件: dist\轻图.exe
-echo 将 tools 文件夹复制到 dist\ 目录下即可使用：
+echo 输出文件: dist\LiteImage.exe
+echo 将 tools 文件夹复制到 dist\ 目录下：
 echo   xcopy /E /I tools dist\tools
+echo.
+echo 然后双击 dist\LiteImage.exe 即可运行
 pause

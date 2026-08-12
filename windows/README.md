@@ -1,6 +1,6 @@
 # 轻图 Windows 版
 
-Windows 版本的轻图图片压缩工具，使用 Python + tkinter 构建。
+Windows 版本的轻图图片压缩工具，使用 Python + Flet 构建。
 
 ## 系统要求
 
@@ -35,6 +35,8 @@ python main.py
 - 质量档位：不压缩 / 中等质量 / 高质量
 - 按长边缩放
 - 覆盖/副本模式
+- 视频转 GIF：ffmpeg 提取帧 + gifski 合成
+- GIF 压缩
 - Debug 日志
 
 ## 工具
@@ -42,13 +44,18 @@ python main.py
 | 工具 | 文件 | 来源 |
 |------|------|------|
 | oxipng | tools/oxipng.exe | https://github.com/shssoichiro/oxipng |
-| posterize | tools/posterize.exe | https://github.com/kornelski/mediancut-posterizer |
+| posterize | tools/posterize.exe | https://github.com/kornelski/mediancut-posterizer (v2.1) |
+| ffmpeg | tools/ffmpeg.exe | https://www.gyan.dev/ffmpeg/builds/ (essentials) |
+| gifski | tools/gifski.exe | https://www.npmjs.com/package/gifski (v1.7.1) |
+
+> 说明：`ffmpeg.exe` 体积约 84MB（静态构建）。若不想打包，可在系统安装 ffmpeg（`winget install ffmpeg`），程序会回退到系统 PATH 中的 ffmpeg。
 
 ## 打包成 EXE（可选）
 
 ```cmd
-pip install pyinstaller
-pyinstaller --onefile --windowed --add-data "tools;tools" main.py
+pip install -r requirements.txt
+flet pack main.py --name LiteImage --add-data "tools;tools"
 ```
 
-生成的 `dist/main.exe` 可直接发给用户，无需安装 Python。
+生成的 `dist/LiteImage.exe` 可直接发给用户，无需安装 Python。
+> 注意：`--add-data "tools;tools"` 会把 ffmpeg.exe（84MB）一并打包，EXE 体积会较大。

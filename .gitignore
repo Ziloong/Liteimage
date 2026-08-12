@@ -43,3 +43,10 @@ build/
 
 # Misc
 *.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Reasonix internal
+.reasonix/

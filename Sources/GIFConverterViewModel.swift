@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import AppKit
 import Combine
+import Darwin
 
 // MARK: - GIF 质量预设
 enum GIFQualityPreset: String, CaseIterable {
@@ -94,6 +95,36 @@ class GIFConverterViewModel: ObservableObject {
         Bundle.main.resourcePath.map { "\($0)/gifski" } ?? ""
     }
 
+    // MARK: - 进程跟踪（停止按钮）
+    private var currentProcess: Process?
+    private let processLock = NSLock()
+
+    func terminateCurrentProcess() {
+        processLock.lock()
+        defer { processLock.unlock() }
+        guard let proc = currentProcess, proc.isRunning else { return }
+        kill(proc.processIdentifier, SIGKILL)
+    }
+
+    /// 运行进程并跟踪（可被 terminateCurrentProcess 中断）
+    private func runTrackedProcessAsync(_ process: Process) async throws {
+        processLock.lock()
+        currentProcess = process
+        processLock.unlock()
+        defer {
+            processLock.lock()
+            currentProcess = nil
+            processLock.unlock()
+        }
+        try process.run()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global().async {
+                process.waitUntilExit()
+                continuation.resume()
+            }
+        }
+    }
+
     // MARK: - 检查工具可用性
     func checkFFmpegAvailability() {
         let exists = FileManager.default.fileExists(atPath: ffmpegPath)
@@ -182,6 +213,7 @@ class GIFConverterViewModel: ObservableObject {
 
         Task {
             for index in selectedVideos.indices {
+                guard isConverting else { break }
                 guard !selectedVideos[index].status.isProcessing else { continue }
 
                 await MainActor.run {
@@ -245,13 +277,7 @@ class GIFConverterViewModel: ObservableObject {
         let ffmpegError = Pipe()
         ffmpegProcess.standardError = ffmpegError
 
-        try ffmpegProcess.run()
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            DispatchQueue.global().async {
-                ffmpegProcess.waitUntilExit()
-                continuation.resume()
-            }
-        }
+        try await runTrackedProcessAsync(ffmpegProcess)
 
         if ffmpegProcess.terminationStatus != 0 {
             let errorData = ffmpegError.fileHandleForReading.readDataToEndOfFile()
@@ -283,13 +309,7 @@ class GIFConverterViewModel: ObservableObject {
         let gifskiError = Pipe()
         gifskiProcess.standardError = gifskiError
 
-        try gifskiProcess.run()
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            DispatchQueue.global().async {
-                gifskiProcess.waitUntilExit()
-                continuation.resume()
-            }
-        }
+        try await runTrackedProcessAsync(gifskiProcess)
 
         if gifskiProcess.terminationStatus != 0 {
             let errorData = gifskiError.fileHandleForReading.readDataToEndOfFile()
@@ -313,6 +333,7 @@ class GIFConverterViewModel: ObservableObject {
 
     func stopConversion() {
         isConverting = false
+        terminateCurrentProcess()
         addLog("已停止转换")
     }
 
@@ -351,6 +372,7 @@ class GIFConverterViewModel: ObservableObject {
 
         Task {
             for (index, url) in selectedGIFURLs.enumerated() {
+                guard isCompressingGIF else { break }
                 do {
                     let outputURL = try await compressSingleGIF(url)
                     await MainActor.run {
@@ -376,43 +398,83 @@ class GIFConverterViewModel: ObservableObject {
 
     private func compressSingleGIF(_ inputURL: URL) async throws -> URL {
         Logger.shared.log("🔄 压缩GIF: \(inputURL.lastPathComponent)")
-        let gifskiExec = gifskiPath
         let outputURL = inputURL.deletingLastPathComponent()
             .appendingPathComponent(inputURL.deletingPathExtension().lastPathComponent + "_compressed.gif")
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: gifskiExec)
-        process.arguments = [
+        // gifski 1.34.0 禁用了视频/GIF 输入，需先 ffmpeg 提取帧再合成
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("gif_comp_\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let framesDir = tempDir.appendingPathComponent("frames")
+        try FileManager.default.createDirectory(at: framesDir, withIntermediateDirectories: true)
+
+        // 1. ffmpeg 提取 GIF 帧
+        let ffmpegProcess = Process()
+        ffmpegProcess.executableURL = URL(fileURLWithPath: ffmpegPath)
+        ffmpegProcess.arguments = [
+            "-i", inputURL.path,
+            "-vf", "scale=\(outputWidth):-1:flags=lanczos,fps=\(frameRate)",
+            "-q:v", "1",
+            framesDir.appendingPathComponent("frame_%04d.png").path
+        ]
+
+        let ffmpegError = Pipe()
+        ffmpegProcess.standardError = ffmpegError
+
+        try await runTrackedProcessAsync(ffmpegProcess)
+
+        if ffmpegProcess.terminationStatus != 0 {
+            let errorData = ffmpegError.fileHandleForReading.readDataToEndOfFile()
+            throw NSError(domain: "FFmpeg", code: Int(ffmpegProcess.terminationStatus), userInfo: [
+                NSLocalizedDescriptionKey: String(data: errorData, encoding: .utf8) ?? "ffmpeg 失败"
+            ])
+        }
+
+        // 2. gifski 合成
+        let frameFiles = try FileManager.default.contentsOfDirectory(at: framesDir, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension.lowercased() == "png" }
+            .sorted { $0.path < $1.path }
+
+        guard !frameFiles.isEmpty else {
+            throw NSError(domain: "GIFCompressor", code: -1, userInfo: [NSLocalizedDescriptionKey: "未提取到帧"])
+        }
+
+        let tempGIFURL = tempDir.appendingPathComponent("output.gif")
+
+        let gifskiProcess = Process()
+        gifskiProcess.executableURL = URL(fileURLWithPath: gifskiPath)
+        gifskiProcess.arguments = [
             "-Q", "\(selectedQuality.quality)",
             "-W", "\(outputWidth)",
             "-r", "\(frameRate)",
-            "-o", outputURL.path,
-            inputURL.path
-        ]
+            "-o", tempGIFURL.path
+        ] + frameFiles.map { $0.path }
 
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
+        let gifskiError = Pipe()
+        gifskiProcess.standardError = gifskiError
 
-        try process.run()
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            DispatchQueue.global().async {
-                process.waitUntilExit()
-                continuation.resume()
-            }
-        }
+        try await runTrackedProcessAsync(gifskiProcess)
 
-        if process.terminationStatus != 0 {
-            let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-            throw NSError(domain: "GIFCompressor", code: Int(process.terminationStatus), userInfo: [
-                NSLocalizedDescriptionKey: String(data: errorData, encoding: .utf8) ?? "压缩失败"
+        if gifskiProcess.terminationStatus != 0 {
+            let errorData = gifskiError.fileHandleForReading.readDataToEndOfFile()
+            throw NSError(domain: "Gifski", code: Int(gifskiProcess.terminationStatus), userInfo: [
+                NSLocalizedDescriptionKey: String(data: errorData, encoding: .utf8) ?? "gifski 失败"
             ])
         }
+
+        // 3. 移动到最终位置
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+            try FileManager.default.removeItem(at: outputURL)
+        }
+        try FileManager.default.copyItem(at: tempGIFURL, to: outputURL)
 
         return outputURL
     }
 
     func stopGIFCompression() {
         isCompressingGIF = false
+        terminateCurrentProcess()
         addGIFLog("已停止压缩")
     }
 

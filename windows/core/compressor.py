@@ -2,6 +2,7 @@
 
 import subprocess
 import os
+import sys
 import shutil
 import logging
 from PIL import Image
@@ -9,7 +10,43 @@ import requests
 
 logger = logging.getLogger("LiteImage")
 
-TOOLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools")
+
+def _resource_dir():
+    """资源目录（tools/ 的父目录），兼容 PyInstaller 打包"""
+    if getattr(sys, "frozen", False):
+        # 打包后：数据解压到 sys._MEIPASS
+        return sys._MEIPASS
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+TOOLS_DIR = os.path.join(_resource_dir(), "tools")
+
+# 进程跟踪（支持停止按钮）
+_current_process = None
+
+
+def terminate():
+    """强制终止当前正在运行的子进程"""
+    global _current_process
+    if _current_process and _current_process.poll() is None:
+        logger.info("⏹ 用户停止，终止进程...")
+        _current_process.kill()
+        _current_process = None
+
+
+def _run_tracked(cmd):
+    """运行命令，支持外部 kill"""
+    global _current_process
+    logger.info(f"▶ {' '.join(cmd)}")
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    _current_process = proc
+    try:
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, cmd, stdout, stderr)
+        return stdout
+    finally:
+        _current_process = None
 
 
 def _tool_path(name):
@@ -17,19 +54,33 @@ def _tool_path(name):
 
 
 def posterize(input_path, output_path, quality=80):
-    """Posterizer 预量化"""
+    """Posterizer 预量化（v2.1，-b blurize 模式推荐，-d 抖动会增大体积故不用）"""
     exe = _tool_path("posterize.exe")
     if not os.path.exists(exe):
         logger.warning("posterize.exe 未找到，跳过")
         return False
-    cmd = [exe, "-Q", str(quality), "-b", "-d", input_path, output_path]
+    cmd = [exe, "-b", "-Q", str(quality), input_path, output_path]
     logger.info(f"🎨 posterize: {os.path.basename(input_path)} Q={quality}")
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        _run_tracked(cmd)
+        _strip_alpha_if_needed(input_path, output_path)
         return True
     except subprocess.CalledProcessError as e:
         logger.error(f"posterize 失败: {e.stderr}")
         return False
+
+
+def _strip_alpha_if_needed(src_path, out_path):
+    """posterize 输出 RGBA，若输入为 RGB 则去掉多余 alpha 通道以减小体积"""
+    try:
+        src = Image.open(src_path)
+        out = Image.open(out_path)
+        if src.mode == "RGB" and out.mode in ("RGBA", "LA"):
+            out.convert("RGB").save(out_path)
+        src.close()
+        out.close()
+    except Exception as e:
+        logger.warning(f"去除 alpha 通道失败: {e}")
 
 
 def oxipng_optimize(input_path):
@@ -41,7 +92,7 @@ def oxipng_optimize(input_path):
     cmd = [exe, "--opt", "6", "--strip", "all", input_path]
     logger.info(f"🔧 oxipng: {os.path.basename(input_path)}")
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        _run_tracked(cmd)
     except subprocess.CalledProcessError as e:
         logger.error(f"oxipng 失败: {e.stderr}")
 

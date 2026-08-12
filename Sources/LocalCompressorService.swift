@@ -2,6 +2,7 @@ import Foundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
+import Darwin
 
 /// 本地压缩引擎服务
 /// 使用编译好的 pngquant 和 gifski 命令行工具进行本地图片压缩
@@ -10,6 +11,28 @@ class LocalCompressorService: @unchecked Sendable {
     /// 当前正在运行的进程（用于停止操作）
     private var currentProcess: Process?
     private let processLock = NSLock()
+
+    /// 取消标志 — 设为 true 后 runTrackedProcess 立刻停止并将后续步骤短路
+    /// 注意：读写需通过 markCancelled/resetCancelled/isCancelledFlag 加锁
+    private var isCancelled = false
+
+    func markCancelled() {
+        processLock.lock()
+        isCancelled = true
+        processLock.unlock()
+    }
+
+    func resetCancelled() {
+        processLock.lock()
+        isCancelled = false
+        processLock.unlock()
+    }
+
+    func isCancelledFlag() -> Bool {
+        processLock.lock()
+        defer { processLock.unlock() }
+        return isCancelled
+    }
 
     enum CompressionError: LocalizedError {
         case toolNotFound(String)
@@ -52,13 +75,9 @@ class LocalCompressorService: @unchecked Sendable {
         processLock.lock()
         defer { processLock.unlock() }
         guard let proc = currentProcess, proc.isRunning else { return }
-        proc.terminate()
-        // 如果 1 秒内还没结束，强制杀
-        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
-            if proc.isRunning {
-                proc.interrupt()
-            }
-        }
+        isCancelled = true
+        // SIGKILL 强制秒杀，进程无法忽略
+        kill(proc.processIdentifier, SIGKILL)
     }
 
     /// 安全运行进程（可被 terminateCurrentProcess 中断）
@@ -73,6 +92,14 @@ class LocalCompressorService: @unchecked Sendable {
         }
         try process.run()
         process.waitUntilExit()
+
+        if isCancelledFlag() {
+            throw CancellationError()
+        }
+
+        guard process.terminationStatus == 0 else {
+            throw CompressionError.compressionFailed("进程异常退出 (exit code: \(process.terminationStatus))")
+        }
     }
 
     // 工具路径
@@ -458,6 +485,8 @@ class LocalCompressorService: @unchecked Sendable {
                         Logger.shared.log("    oxipng 优化完成")
                     }
                     continuation.resume()
+                } catch is CancellationError {
+                    continuation.resume(throwing: CancellationError())
                 } catch {
                     Logger.shared.log("  ⚠️ oxipng 运行失败: \(error.localizedDescription)")
                     continuation.resume()

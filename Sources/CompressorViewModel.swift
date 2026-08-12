@@ -191,6 +191,7 @@ class CompressorViewModel: ObservableObject {
     /// 停止压缩
     func stopCompression() {
         isCompressing = false
+        localService.markCancelled()
         localService.terminateCurrentProcess()
         // 清除未开始的项和对应日志
         imageItems.removeAll { $0.status == .pending }
@@ -211,6 +212,7 @@ class CompressorViewModel: ObservableObject {
 
         Logger.shared.log("🚀 ===== 开始批量压缩，共 \(pendingCount) 个图片 =====")
         isCompressing = true
+        localService.resetCancelled()
 
         Task {
             for index in imageItems.indices {
@@ -390,7 +392,13 @@ class CompressorViewModel: ObservableObject {
                 if shouldCompress {
                     // Posterizer 预量化
                     let posterTemp = tempDir.appendingPathComponent(UUID().uuidString + "_poster.png")
-                    try? await localService.posterizePNG(inputURL: processURL, outputURL: posterTemp)
+                    do {
+                        try await localService.posterizePNG(inputURL: processURL, outputURL: posterTemp)
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        // posterize 失败则回退到原图，继续流程
+                    }
                     let src = FileManager.default.fileExists(atPath: posterTemp.path) ? posterTemp : processURL
                     try FileManager.default.copyItem(at: src, to: tempOutputURL)
                     if src != processURL { try? FileManager.default.removeItem(at: src) }
@@ -412,7 +420,13 @@ class CompressorViewModel: ObservableObject {
             try await localService.convertToPNG(inputURL: processURL, outputURL: pngTemp)
             if shouldCompress {
                 let posterTemp = tempDir.appendingPathComponent(UUID().uuidString + "_poster.png")
-                try? await localService.posterizePNG(inputURL: pngTemp, outputURL: posterTemp)
+                do {
+                    try await localService.posterizePNG(inputURL: pngTemp, outputURL: posterTemp)
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    // posterize 失败则回退到原图，继续流程
+                }
                 let src = FileManager.default.fileExists(atPath: posterTemp.path) ? posterTemp : pngTemp
                 try FileManager.default.copyItem(at: src, to: tempOutputURL)
                 if src != pngTemp { try? FileManager.default.removeItem(at: src) }
@@ -434,7 +448,13 @@ class CompressorViewModel: ObservableObject {
 
         // PNG 输出统一用 oxipng 无损优化
         if outputExt == "png" && quality != .none {
-            try? await localService.optimizeWithOxipng(inputURL: tempOutputURL)
+            do {
+                try await localService.optimizeWithOxipng(inputURL: tempOutputURL)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                // oxipng 失败不影响结果，使用未优化的文件
+            }
         }
 
         // 步骤 3：移动到最终位置

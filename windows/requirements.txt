@@ -1,3 +1,4 @@
 Pillow>=10.0.0
 requests>=2.28.0
-flet>=0.24.0
+flet>=0.86.0
+flet-dropzone>=0.4.0

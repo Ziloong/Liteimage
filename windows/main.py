@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""轻图 Windows — CustomTkinter 现代 UI"""
+"""轻图 Windows — Flet Material Design UI（接近 SwiftUI 风格）"""
 
-import customtkinter as ctk
-from tkinter import filedialog, messagebox
+import flet as ft
 import threading
 import os
 import json
@@ -16,9 +15,6 @@ os.makedirs(CONFIG_FILE.parent, exist_ok=True)
 
 DEFAULT_API_KEY = "NYPwQ8Kpjcng9gCSxmhy5hdzBGS7wpzC"
 DEFAULT_BACKUP_KEY = "vbQQ2fGGLVLntTkpNRLCtQbPhFx4Jx8x"
-
-ctk.set_appearance_mode("System")
-ctk.set_default_color_theme("blue")
 
 
 def load_config():
@@ -37,214 +33,235 @@ def save_config(cfg):
     CONFIG_FILE.write_text(json.dumps(cfg, indent=2))
 
 
-class ImageRow(ctk.CTkFrame):
-    """单行图片条目"""
-
-    def __init__(self, master, item, on_remove, on_change, **kw):
-        super().__init__(master, fg_color=("gray90", "gray17"), corner_radius=6, **kw)
-        self.item = item
-        self.on_remove = on_remove
-        self.on_change = on_change
-
-        # 状态
-        self.status_label = ctk.CTkLabel(self, text="⏳", width=30, font=("", 14))
-        self.status_label.pack(side="left", padx=(8, 2))
-
-        # 文件信息
-        info = ctk.CTkFrame(self, fg_color="transparent")
-        info.pack(side="left", fill="x", expand=True, padx=4)
-        name = Path(item["path"]).name
-        ext = Path(item["path"]).suffix.upper().replace(".", "")
-        ctk.CTkLabel(info, text=f"{name}  ", font=("", 11, "bold")).pack(anchor="w")
-        size_label = ctk.CTkLabel(info, text=self._fmt_size(item.get("_size", 0)),
-                                  font=("", 10), text_color="gray")
-        size_label.pack(anchor="w")
-
-        # 右侧控制
-        ctrl = ctk.CTkFrame(self, fg_color="transparent")
-        ctrl.pack(side="right", padx=4)
-
-        # 缩放
-        resize_var = ctk.IntVar(value=item.get("resize", 0))
-        self._resize_var = resize_var
-
-        def toggle_resize():
-            if resize_var.get() == 0:
-                dlg = ctk.CTkInputDialog(text="长边像素 (100-8000):", title="缩放设置")
-                val = dlg.get_input()
-                if val and val.isdigit():
-                    v = int(val)
-                    if 100 <= v <= 8000:
-                        resize_var.set(v)
-                        item["resize"] = v
-                        self._update_resize_btn()
-                        on_change()
-
-        self._resize_btn = ctk.CTkButton(ctrl, text="↔", width=28, height=24,
-                                          font=("", 11), command=toggle_resize,
-                                          fg_color="transparent" if resize_var.get() == 0 else None)
-        self._resize_btn.pack(side="left", padx=1)
-        if resize_var.get() > 0:
-            ctk.CTkLabel(ctrl, text=f"{resize_var.get()}px", font=("", 9)).pack(side="left", padx=1)
-
-        # 格式
-        fmt_var = ctk.StringVar(value=item.get("format", "none"))
-        fmt_menu = ctk.CTkOptionMenu(ctrl, values=["不转换", "JPG→PNG", "PNG→JPG"],
-                                      variable=fmt_var, width=100, height=24, font=("", 11),
-                                      command=lambda v: self._on_fmt_change(v))
-        fmt_menu.pack(side="left", padx=2)
-
-        # 质量
-        q_var = ctk.StringVar(value=item.get("quality", "high"))
-        q_menu = ctk.CTkOptionMenu(ctrl, values=["不压缩", "中等质量", "高质量"],
-                                    variable=q_var, width=90, height=24, font=("", 11),
-                                    command=lambda v: self._on_quality_change(v))
-        q_menu.pack(side="left", padx=2)
-
-        # 删除
-        ctk.CTkButton(ctrl, text="✕", width=24, height=24, fg_color="transparent",
-                       hover_color="red", font=("", 12), command=on_remove).pack(side="left", padx=1)
-
-    def _on_fmt_change(self, v):
-        m = {"不转换": "none", "JPG→PNG": "jpg2png", "PNG→JPG": "png2jpg"}
-        self.item["format"] = m.get(v, "none")
-        self.on_change()
-
-    def _on_quality_change(self, v):
-        m = {"不压缩": "none", "中等质量": "medium", "高质量": "high"}
-        self.item["quality"] = m.get(v, "high")
-        self.on_change()
-
-    def _update_resize_btn(self):
-        v = self._resize_var.get()
-        self._resize_btn.configure(fg_color=None if v > 0 else "transparent")
-
-    @staticmethod
-    def _fmt_size(size):
-        if size < 1024:
-            return f"{size} B"
-        elif size < 1024 * 1024:
-            return f"{size / 1024:.1f} KB"
-        else:
-            return f"{size / (1024 * 1024):.1f} MB"
+FMT_LABELS = {"none": "不转换", "jpg2png": "JPG → PNG", "png2jpg": "PNG → JPG"}
+Q_LABELS = {"none": "不压缩", "medium": "中等质量", "high": "高质量"}
+FMT_KEYS = {v: k for k, v in FMT_LABELS.items()}
+Q_KEYS = {v: k for k, v in Q_LABELS.items()}
 
 
-class LiteImageApp(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("轻图")
-        self.geometry("860x640")
-        self.minsize(720, 480)
+def _fmt_size(size):
+    if size < 1024:
+        return f"{size} B"
+    elif size < 1024 * 1024:
+        return f"{size / 1024:.1f} KB"
+    else:
+        return f"{size / (1024 * 1024):.1f} MB"
+
+
+class LiteImageApp:
+    def __init__(self, page: ft.Page):
+        self.page = page
         self.cfg = load_config()
         self.items = []
-        self.row_widgets = []
         self.running = False
-        self._build_ui()
+        self._done_count = 0
+
+        page.title = "轻图"
+        page.window.width = 860
+        page.window.height = 640
+        page.window.min_width = 720
+        page.window.min_height = 480
+        page.theme_mode = ft.ThemeMode.SYSTEM
+        page.padding = 16
+        page.spacing = 12
+
         logger.enable(self.cfg.get("debug_log", False))
+        self._build_ui()
 
     def _build_ui(self):
-        # 顶栏
-        top = ctk.CTkFrame(self, fg_color="transparent")
-        top.pack(fill="x", padx=12, pady=(12, 4))
+        # ——— 顶栏 ———
+        self.status_text = ft.Text("拖放或点击添加图片", color=ft.Colors.GREY, size=13)
 
-        ctk.CTkButton(top, text="＋ 添加图片", width=100, command=self.add_files).pack(side="left", padx=2)
-        ctk.CTkButton(top, text="清空", width=70, fg_color="transparent",
-                       border_width=1, command=self.clear_list).pack(side="left", padx=2)
-
-        self.btn_start = ctk.CTkButton(top, text="▶ 马上压缩", width=120, command=self.start_compression)
-        self.btn_start.pack(side="right", padx=2)
-        ctk.CTkButton(top, text="⚙", width=36, fg_color="transparent",
-                       command=self.open_settings).pack(side="right", padx=2)
-
-        # 统计
-        self.status_label = ctk.CTkLabel(top, text="拖放或点击添加图片", text_color="gray")
-        self.status_label.pack(side="left", padx=10)
-
-        # 列表区域
-        self.list_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.list_frame.pack(fill="both", expand=True, padx=12, pady=4)
-
-        # 空状态占位
-        self._placeholder = ctk.CTkLabel(self.list_frame, text="拖放图片到此处，或点击「添加图片」",
-                                          font=("", 14), text_color="gray")
-        self._placeholder.pack(expand=True)
-
-        # 底部
-        bottom = ctk.CTkFrame(self, fg_color="transparent")
-        bottom.pack(fill="x", padx=12, pady=(4, 8))
-
-        self.overwrite_var = ctk.BooleanVar(value=self.cfg.get("overwrite", False))
-        ctk.CTkCheckBox(bottom, text="覆盖原文件", variable=self.overwrite_var,
-                         font=("", 11)).pack(side="left")
-        ctk.CTkLabel(bottom, text="中质量：本地压缩  |  高质量：网络压缩",
-                      text_color="gray", font=("", 10)).pack(side="right")
-
-    # ============ 列表操作 ============
-
-    def add_files(self):
-        files = filedialog.askopenfilenames(
-            title="选择图片", filetypes=[("图片", "*.png *.jpg *.jpeg")]
+        add_btn = ft.ElevatedButton(
+            "＋ 添加图片", icon=ft.Icons.ADD_PHOTO_ALTERNATE_OUTLINED,
+            on_click=lambda e: self._pick_files()
         )
-        for f in files:
-            size = os.path.getsize(f)
-            item = {
-                "path": f, "format": "none", "quality": "high",
-                "resize": 0, "_size": size
-            }
-            self.items.append(item)
-            row = ImageRow(self.list_frame, item,
-                           on_remove=lambda r=item: self._remove_item(r),
-                           on_change=self._save_items)
-            row.pack(fill="x", pady=2, padx=2)
-            self.row_widgets.append(row)
-        self._update_ui()
+        clear_btn = ft.OutlinedButton("清空", on_click=lambda e: self._clear())
+        settings_btn = ft.IconButton(
+            ft.Icons.SETTINGS_OUTLINED, tooltip="设置", on_click=lambda e: self._open_settings()
+        )
+        self.start_btn = ft.FilledButton(
+            "马上压缩", icon=ft.Icons.PLAY_ARROW, on_click=lambda e: self._toggle()
+        )
 
-    def clear_list(self):
-        for w in self.row_widgets:
-            w.destroy()
-        self.row_widgets.clear()
+        top = ft.Row(
+            [add_btn, clear_btn, self.status_text, ft.Row([self.start_btn, settings_btn])],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+
+        # ——— 列表 ———
+        self.list_view = ft.ListView(spacing=8, expand=True)
+        self._placeholder = ft.Container(
+            ft.Column([
+                ft.Icon(ft.Icons.CLOUD_UPLOAD_OUTLINED, size=64, color=ft.Colors.GREY),
+                ft.Text("拖放图片到此处，或点击「添加图片」", size=16, color=ft.Colors.GREY),
+            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            expand=True, alignment=ft.alignment.center,
+        )
+
+        # ——— 底部 ———
+        self.overwrite_switch = ft.Switch(
+            label="覆盖原文件", value=self.cfg.get("overwrite", False),
+        )
+        hint = ft.Text("中质量：本地压缩  |  高质量：网络压缩", color=ft.Colors.GREY, size=11)
+
+        bottom = ft.Row(
+            [self.overwrite_switch, hint],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        )
+
+        page = self.page
+        page.add(top, self._placeholder, self.list_view, bottom)
+        self._update_view()
+
+    # ——— 文件操作 ———
+
+    def _pick_files(self):
+        def _do():
+            from tkinter import filedialog
+            files = filedialog.askopenfilenames(title="选择图片", filetypes=[("图片", "*.png *.jpg *.jpeg")])
+            if files:
+                for f in files:
+                    self._add_file(f)
+                self._update_view()
+
+        import threading
+        threading.Thread(target=_do, daemon=True).start()
+
+    def _add_file(self, path):
+        size = os.path.getsize(path)
+        item = {"path": path, "format": "none", "quality": "high", "resize": 0, "_size": size}
+        self.items.append(item)
+        self._build_list_item(len(self.items) - 1, item)
+
+    def _build_list_item(self, idx, item):
+        ext = Path(item["path"]).suffix.upper().replace(".", "")
+        name = Path(item["path"]).name
+
+        status_icon = ft.Icon(ft.Icons.CIRCLE_OUTLINED, size=18, color=ft.Colors.GREY)
+
+        # 缩放
+        resize_tf = ft.TextField(
+            value=str(item["resize"]) if item["resize"] else "",
+            hint_text="px", width=68, height=36, text_size=12,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            on_change=lambda e: self._on_resize_change(idx, e),
+        )
+        resize_switch = ft.Switch(
+            value=item["resize"] > 0, label="缩放",
+            on_change=lambda e: self._on_resize_toggle(idx, e, resize_tf),
+        )
+
+        # 格式
+        fmt_dd = ft.Dropdown(
+            value=FMT_LABELS[item["format"]],
+            options=[ft.dropdown.Option(v) for v in FMT_LABELS.values()],
+            width=120, text_size=12,
+            on_change=lambda e: self._on_fmt_change(idx, e),
+        )
+
+        # 质量
+        q_dd = ft.Dropdown(
+            value=Q_LABELS[item["quality"]],
+            options=[ft.dropdown.Option(v) for v in Q_LABELS.values()],
+            width=100, text_size=12,
+            on_change=lambda e: self._on_q_change(idx, e),
+        )
+
+        # 删除
+        del_btn = ft.IconButton(
+            ft.Icons.CLOSE, icon_size=16, tooltip="移除",
+            on_click=lambda e: self._remove(idx),
+        )
+
+        card = ft.Card(
+            ft.Container(
+                ft.Row([
+                    status_icon,
+                    ft.Column([
+                        ft.Text(name, size=13, weight=ft.FontWeight.W_500),
+                        ft.Text(f"{ext}  ·  {_fmt_size(item['_size'])}", size=11, color=ft.Colors.GREY),
+                    ], spacing=2, expand=True),
+                    resize_switch, resize_tf,
+                    fmt_dd, q_dd, del_btn,
+                ], spacing=8),
+                padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            ),
+        )
+
+        item["_widgets"] = {
+            "status": status_icon, "resize_switch": resize_switch,
+            "resize_tf": resize_tf, "fmt": fmt_dd, "q": q_dd, "card": card,
+        }
+        self.list_view.controls.append(card)
+
+    def _remove(self, idx):
+        self.items.pop(idx)
+        self.list_view.controls.pop(idx)
+        self._update_view()
+
+    def _clear(self):
         self.items.clear()
-        self._update_ui()
+        self.list_view.controls.clear()
+        self._update_view()
 
-    def _remove_item(self, item):
-        idx = next(i for i, it in enumerate(self.items) if it["path"] == item["path"])
-        self.row_widgets[idx].destroy()
-        del self.row_widgets[idx]
-        del self.items[idx]
-        self._update_ui()
+    def _on_fmt_change(self, idx, e):
+        self.items[idx]["format"] = FMT_KEYS.get(e.control.value, "none")
 
-    def _save_items(self):
-        pass  # items 直接引用，无需保存
+    def _on_q_change(self, idx, e):
+        self.items[idx]["quality"] = Q_KEYS.get(e.control.value, "high")
 
-    def _update_ui(self):
-        n = len(self.items)
-        self.status_label.configure(text=f"共 {n} 张图片" if n else "拖放或点击添加图片")
-        if n:
-            self._placeholder.pack_forget()
+    def _on_resize_toggle(self, idx, e, tf):
+        if e.control.value:
+            tf.visible = True
+            self.items[idx]["resize"] = int(tf.value or 2048)
+            tf.value = str(self.items[idx]["resize"])
         else:
-            self._placeholder.pack(expand=True)
-        self.btn_start.configure(state="normal" if n and not self.running else "disabled")
+            tf.visible = False
+            self.items[idx]["resize"] = 0
+        self.page.update()
 
-    # ============ 压缩 ============
+    def _on_resize_change(self, idx, e):
+        val = e.control.value
+        if val.isdigit() and 100 <= int(val) <= 8000:
+            self.items[idx]["resize"] = int(val)
 
-    def start_compression(self):
+    def _update_view(self):
+        n = len(self.items)
+        self.status_text.value = f"✅ {self._done_count} 完成  |  共 {n} 张" if n else "拖放或点击添加图片"
+        self._placeholder.visible = (n == 0)
+        self.list_view.visible = (n > 0)
+        self.page.update()
+
+    # ——— 压缩 ———
+
+    def _toggle(self):
         if self.running:
             self.running = False
-            self.btn_start.configure(text="▶ 马上压缩")
-            return
+            self.start_btn.text = "马上压缩"
+            self.start_btn.icon = ft.Icons.PLAY_ARROW
+            self.start_btn.style = None
+            self.page.update()
+        else:
+            self._start_compression()
+
+    def _start_compression(self):
         if not self.items:
             return
-
         self.running = True
-        self.btn_start.configure(text="■ 停止", fg_color="red")
-        self.cfg["overwrite"] = self.overwrite_var.get()
+        self._done_count = 0
+        self.start_btn.text = "■ 停止"
+        self.start_btn.icon = ft.Icons.STOP
+        self.start_btn.style = ft.ButtonStyle(bgcolor=ft.Colors.RED)
+        self.cfg["overwrite"] = self.overwrite_switch.value
         save_config(self.cfg)
+        self.page.update()
 
         thread = threading.Thread(target=self._run_compression, daemon=True)
         thread.start()
 
     def _run_compression(self):
-        overwrite = self.overwrite_var.get()
+        overwrite = self.overwrite_switch.value
         api_key = self.cfg.get("api_key", "")
         backup_key = self.cfg.get("backup_api_key", "")
 
@@ -252,46 +269,39 @@ class LiteImageApp(ctk.CTk):
             if not self.running:
                 break
 
+            self._set_status(i, ft.Icons.HOURGLASS_EMPTY, ft.Colors.ORANGE)
             input_path = item["path"]
             fmt = item["format"]
             quality = item["quality"]
             resize_px = item["resize"]
             ext = Path(input_path).suffix.lower()
 
-            self._set_status(i, "🔄")
-            logger.logger.info(f"[{i+1}/{len(self.items)}] {Path(input_path).name} fmt={fmt} q={quality} resize={resize_px}")
-
             try:
                 tmp = input_path + ".liteimage.tmp"
-                out_ext = { "jpg2png": ".png", "png2jpg": ".jpg" }.get(fmt, ext)
+                out_ext = {"jpg2png": ".png", "png2jpg": ".jpg"}.get(fmt, ext)
                 out_path = input_path if overwrite else str(
                     Path(input_path).with_name(Path(input_path).stem + "-compressed" + out_ext))
 
-                # 缩放
                 work_file = input_path
                 if resize_px > 0:
                     tmp_r = input_path + ".resize.tmp"
                     compressor.resize_by_long_edge(input_path, tmp_r, resize_px)
                     work_file = tmp_r
 
-                # 格式转换 + 压缩
                 if fmt == "png2jpg":
-                    compressor.convert_to_jpeg(work_file, tmp, quality={"medium":80,"high":90,"none":95}[quality])
+                    compressor.convert_to_jpeg(work_file, tmp, quality={"medium": 80, "high": 90, "none": 95}[quality])
                 elif quality == "high" and ext == ".png" and fmt == "none" and api_key:
                     try:
                         compressor.tinypng_compress(work_file, tmp, api_key)
                     except Exception:
-                        if backup_key:
-                            try:
-                                compressor.tinypng_compress(work_file, tmp, backup_key)
-                            except Exception:
-                                compressor.compress_png(work_file, tmp, "high")
-                        else:
+                        try:
+                            compressor.tinypng_compress(work_file, tmp, backup_key)
+                        except Exception:
                             compressor.compress_png(work_file, tmp, "high")
                 elif fmt == "jpg2png":
-                    t = tmp + ".png"
-                    compressor.convert_to_png(work_file, t)
-                    compressor.posterize(t, tmp, quality=80)
+                    t2 = tmp + ".png"
+                    compressor.convert_to_png(work_file, t2)
+                    compressor.posterize(t2, tmp, quality=80)
                     compressor.oxipng_optimize(tmp)
                 elif ext == ".png" and fmt == "none":
                     compressor.compress_png(work_file, tmp, quality)
@@ -302,103 +312,103 @@ class LiteImageApp(ctk.CTk):
                     os.remove(out_path)
                 if os.path.exists(tmp):
                     os.replace(tmp, out_path)
-
                 for f in [work_file if work_file != input_path else None]:
                     if f and os.path.exists(f) and f != out_path:
                         os.remove(f)
 
-                new_size = os.path.getsize(out_path)
-                self._set_status(i, "✅")
-                logger.logger.info(f"  ✅ {Path(input_path).name} → {new_size:,.0f}")
+                self._set_status(i, ft.Icons.CHECK_CIRCLE, ft.Colors.GREEN)
+                self._done_count += 1
+                self._update_status_text()
 
             except Exception as e:
-                self._set_status(i, "❌")
-                logger.logger.error(f"  ❌ {Path(input_path).name}: {e}")
+                self._set_status(i, ft.Icons.ERROR, ft.Colors.RED)
+                logger.logger.error(f"❌ {Path(input_path).name}: {e}")
 
         self.running = False
-        self.btn_start.configure(text="▶ 马上压缩", fg_color=("#3B8ED0", "#1F6AA5"), state="normal")
+        self.start_btn.text = "马上压缩"
+        self.start_btn.icon = ft.Icons.PLAY_ARROW
+        self.start_btn.style = None
+        self.page.update()
 
-    def _set_status(self, idx, icon):
-        if idx < len(self.row_widgets):
-            self.row_widgets[idx].status_label.configure(text=icon)
+    def _set_status(self, idx, icon, color):
+        if idx < len(self.items) and "_widgets" in self.items[idx]:
+            w = self.items[idx]["_widgets"]["status"]
+            w.name = icon
+            w.color = color
+            self.page.update()
 
-    # ============ 设置 ============
+    def _update_status_text(self):
+        self.status_text.value = f"✅ {self._done_count} 完成  |  共 {len(self.items)} 张"
+        self.page.update()
 
-    def open_settings(self):
-        dlg = ctk.CTkToplevel(self)
-        dlg.title("设置")
-        dlg.geometry("440x480")
-        dlg.transient(self)
-        dlg.grab_set()
+    # ——— 设置 ———
 
-        tab = ctk.CTkTabview(dlg)
-        tab.pack(fill="both", expand=True, padx=8, pady=8)
-        tab.add("API Key")
-        tab.add("Debug")
+    def _open_settings(self):
+        api_key = self.cfg.get("api_key", "")
+        backup_key = self.cfg.get("backup_api_key", "")
+        debug_val = self.cfg.get("debug_log", False)
 
-        # API Key
-        api_frame = tab.tab("API Key")
-        ctk.CTkLabel(api_frame, text="主 API Key:", font=("", 12)).pack(anchor="w", padx=10, pady=(10, 2))
-        api_var = ctk.StringVar(value=self.cfg.get("api_key", ""))
-        ctk.CTkEntry(api_frame, textvariable=api_var, width=380, show="•").pack(padx=10)
+        api_tf = ft.TextField(value=api_key, label="主 API Key", password=True, can_reveal_password=True)
+        backup_tf = ft.TextField(value=backup_key, label="备用 API Key", password=True, can_reveal_password=True)
+        debug_sw = ft.Switch(value=debug_val, label="启用 Debug 日志")
+        status_txt = ft.Text("", size=12)
 
-        ctk.CTkLabel(api_frame, text="备用 API Key:", font=("", 12)).pack(anchor="w", padx=10, pady=(10, 2))
-        backup_var = ctk.StringVar(value=self.cfg.get("backup_api_key", ""))
-        ctk.CTkEntry(api_frame, textvariable=backup_var, width=380, show="•").pack(padx=10)
-
-        def test_key(var, label):
+        def test_key(key, prefix):
             try:
-                valid, count = compressor.tinypng_validate(var.get())
-                label.configure(text=f"✅ 有效，本月已用 {count} 次" if valid else "❌ 无效",
-                                text_color="green" if valid else "red")
+                valid, count = compressor.tinypng_validate(key)
+                status_txt.value = f"{prefix} ✅ 有效，本月已用 {count} 次" if valid else f"{prefix} ❌ 无效"
+                status_txt.color = ft.Colors.GREEN if valid else ft.Colors.RED
+                self.page.update()
             except Exception as e:
-                label.configure(text=f"❌ {e}", text_color="red")
+                status_txt.value = f"{prefix} ❌ {e}"
+                status_txt.color = ft.Colors.RED
+                self.page.update()
 
-        t1 = ctk.CTkFrame(api_frame, fg_color="transparent")
-        t1.pack(fill="x", padx=10, pady=4)
-        ctk.CTkButton(t1, text="测试主 Key", width=100, command=lambda: test_key(api_var, api_status)).pack(side="left")
-        api_status = ctk.CTkLabel(t1, text="", font=("", 10))
-        api_status.pack(side="left", padx=8)
-
-        t2 = ctk.CTkFrame(api_frame, fg_color="transparent")
-        t2.pack(fill="x", padx=10, pady=4)
-        ctk.CTkButton(t2, text="测试备用 Key", width=100, command=lambda: test_key(backup_var, backup_status)).pack(side="left")
-        backup_status = ctk.CTkLabel(t2, text="", font=("", 10))
-        backup_status.pack(side="left", padx=8)
-
-        def restore():
-            api_var.set(DEFAULT_API_KEY)
-            backup_var.set(DEFAULT_BACKUP_KEY)
-        ctk.CTkButton(api_frame, text="🔄 还原默认 Key", fg_color="transparent",
-                       border_width=1, command=restore).pack(pady=6)
-
-        ctk.CTkButton(api_frame, text="🔗 申请免费 API Key →",
-                       fg_color="transparent", text_color=("#3B8ED0", "#1F6AA5"),
-                       command=lambda: webbrowser.open("https://tinypng.com/developers")).pack()
-
-        # Debug
-        debug_frame = tab.tab("Debug")
-        debug_var = ctk.BooleanVar(value=self.cfg.get("debug_log", False))
-        ctk.CTkCheckBox(debug_frame, text="启用 Debug 日志", variable=debug_var).pack(anchor="w", padx=10, pady=10)
-
-        def open_log():
-            os.startfile(logger.get_log_dir()) if os.name == "nt" else None
-        ctk.CTkButton(debug_frame, text="📂 打开日志目录", fg_color="transparent",
-                       border_width=1, command=open_log).pack(padx=10, pady=4)
-        ctk.CTkButton(debug_frame, text="📄 查看最新日志", fg_color="transparent",
-                       border_width=1, command=lambda: os.startfile(logger.get_log_path()) if os.path.exists(logger.get_log_path()) else messagebox.showinfo("提示","暂无日志")).pack(padx=10, pady=4)
-
-        def save():
-            self.cfg["api_key"] = api_var.get()
-            self.cfg["backup_api_key"] = backup_var.get()
-            self.cfg["debug_log"] = debug_var.get()
+        def save(e):
+            self.cfg["api_key"] = api_tf.value
+            self.cfg["backup_api_key"] = backup_tf.value
+            self.cfg["debug_log"] = debug_sw.value
             save_config(self.cfg)
-            logger.enable(debug_var.get())
-            dlg.destroy()
+            logger.enable(debug_sw.value)
+            dlg.open = False
+            self.page.update()
 
-        ctk.CTkButton(dlg, text="💾 保存设置", command=save).pack(pady=10)
+        def restore(e):
+            api_tf.value = DEFAULT_API_KEY
+            backup_tf.value = DEFAULT_BACKUP_KEY
+            self.page.update()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("设置"),
+            content=ft.Column([
+                ft.Text("API Key", size=14, weight=ft.FontWeight.W_500),
+                api_tf,
+                ft.Row([
+                    ft.TextButton("测试主 Key", on_click=lambda e: test_key(api_tf.value, "主Key")),
+                    ft.TextButton("测试备用", on_click=lambda e: test_key(backup_tf.value, "备用Key")),
+                ]),
+                backup_tf,
+                ft.Row([
+                    ft.TextButton("🔄 还原默认 Key", on_click=restore),
+                    ft.TextButton("🔗 申请免费 Key", on_click=lambda e: webbrowser.open("https://tinypng.com/developers")),
+                ]),
+                status_txt,
+                ft.Divider(),
+                ft.Text("Debug", size=14, weight=ft.FontWeight.W_500),
+                debug_sw,
+                ft.Row([
+                    ft.TextButton("📂 打开日志目录", on_click=lambda e: os.startfile(logger.get_log_dir()) if os.name == "nt" else None),
+                    ft.TextButton("📄 查看日志", on_click=lambda e: os.startfile(logger.get_log_path()) if os.path.exists(logger.get_log_path()) else None),
+                ]),
+            ], spacing=8, width=420, scroll=ft.ScrollMode.AUTO),
+            actions=[ft.FilledButton("💾 保存设置", on_click=save)],
+        )
+        self.page.open(dlg)
+
+
+def main(page: ft.Page):
+    LiteImageApp(page)
 
 
 if __name__ == "__main__":
-    app = LiteImageApp()
-    app.mainloop()
+    ft.app(target=main)

@@ -94,21 +94,14 @@ struct ImageCompressView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 16) {
-                    // Engine Selector
-                    engineSelectorView
-                        .padding(.horizontal)
-                    
-                    // Drop Zone
-                    DropZoneView(
-                        isTargeted: $isTargeted,
-                        onDrop: { urls in
-                            viewModel.compressFiles(urls)
-                        },
-                        onTap: {
-                            showFilePicker = true
-                        },
-                        acceptedExtensions: ["png", "jpg", "jpeg"]
-                    )
+                    // 拖放区：无图片时全尺寸，有图片时小号覆盖层
+                    Group {
+                        if viewModel.imageItems.isEmpty {
+                            fullDropZone
+                        } else {
+                            miniDropOverlay
+                        }
+                    }
                     .padding(.horizontal)
 
                     // 覆盖原文件选项
@@ -116,91 +109,20 @@ struct ImageCompressView: View {
                         Toggle(L.overwriteOriginal, isOn: $viewModel.shouldOverwrite)
                             .toggleStyle(.checkbox)
                             .font(.caption)
-                        
                         Text(viewModel.shouldOverwrite ? L.overwriteHint : L.saveAsHint)
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
                         Spacer()
                     }
                     .padding(.horizontal)
 
-                    // 本地引擎质量选项
-                    if viewModel.selectedEngine == .local {
-                        HStack(spacing: 8) {
-                            Text(L.quality)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                    // 图片列表卡片（含缩放设置）
+                    if !viewModel.imageItems.isEmpty {
+                        imageListCard
+                            .padding(.horizontal)
 
-                            HStack(spacing: 4) {
-                                ForEach(LocalCompressionQuality.allCases) { q in
-                                    Button {
-                                        viewModel.localQuality = q
-                                    } label: {
-                                        Text(q.displayName)
-                                            .font(.caption)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 4)
-                                            .background(viewModel.localQuality == q ? Color.accentColor : Color(NSColor.controlBackgroundColor))
-                                            .foregroundColor(viewModel.localQuality == q ? .white : .primary)
-                                            .cornerRadius(5)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-
-                        // 尺寸缩放选项
-                        HStack(spacing: 8) {
-                            Toggle(L.resizeByLongEdge, isOn: $viewModel.resizeEnabled)
-                                .toggleStyle(.checkbox)
-                                .font(.caption)
-
-                            if viewModel.resizeEnabled {
-                                HStack(spacing: 4) {
-                                    TextField("", value: $viewModel.maxLongEdge, formatter: {
-                                        let f = NumberFormatter()
-                                        f.minimum = 100
-                                        f.maximum = 8000
-                                        f.allowsFloats = false
-                                        return f
-                                    }())
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 64)
-                                    .font(.caption)
-
-                                    Text("px")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                // 常用预设
-                                HStack(spacing: 4) {
-                                    ForEach([1920, 1280, 800], id: \.self) { preset in
-                                        Button("\(preset)") {
-                                            viewModel.maxLongEdge = preset
-                                        }
-                                        .font(.system(size: 10))
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(viewModel.maxLongEdge == preset ? Color.accentColor : Color(NSColor.controlBackgroundColor))
-                                        .foregroundColor(viewModel.maxLongEdge == preset ? .white : .secondary)
-                                        .cornerRadius(4)
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            } else {
-                                Text(L.resizeHint)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal)
+                        compressNowButton
+                            .padding(.horizontal)
                     }
                     
                     // Stats
@@ -212,7 +134,7 @@ struct ImageCompressView: View {
                         .padding(.horizontal)
                     
                     // Footer
-                    Text(viewModel.shouldOverwrite ? L.overwriteFooter : L.saveAsFooter)
+                    Text(L.compressionHint)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding(.bottom, 12)
@@ -232,35 +154,161 @@ struct ImageCompressView: View {
             }
         }
     }
-    
-    private var engineSelectorView: some View {
-        HStack(spacing: 12) {
-            ForEach(CompressionEngine.allCases) { engine in
-                EngineButton(
-                    engine: engine,
-                    isSelected: viewModel.selectedEngine == engine,
-                    action: { viewModel.selectedEngine = engine }
-                )
+
+    // MARK: - Drop Zones
+
+    private var fullDropZone: some View {
+        DropZoneView(
+            isTargeted: $isTargeted,
+            onDrop: { urls in viewModel.compressFiles(urls) },
+            onTap: { showFilePicker = true },
+            acceptedExtensions: ["png", "jpg", "jpeg"]
+        )
+    }
+
+    private var miniDropOverlay: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6]))
+                .foregroundColor(isTargeted ? .blue : .gray.opacity(0.3))
+
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.dashed")
+                    .font(.system(size: 18))
+                    .foregroundColor(.secondary)
+                Text(L.addMoreFiles)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .frame(height: 52)
+        .background(isTargeted ? Color.blue.opacity(0.05) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { showFilePicker = true }
+        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
+            Task {
+                var urls: [URL] = []
+                for provider in providers {
+                    if let url = await loadFileURL(from: provider) {
+                        let ext = url.pathExtension.lowercased()
+                        if ["png", "jpg", "jpeg"].contains(ext) {
+                            urls.append(url)
+                        }
+                    }
+                }
+                await MainActor.run {
+                    if !urls.isEmpty { viewModel.compressFiles(urls) }
+                }
+            }
+            return true
+        }
+    }
+
+    private func loadFileURL(from provider: NSItemProvider) async -> URL? {
+        await withCheckedContinuation { continuation in
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                if let data = item as? Data,
+                   let url = URL(dataRepresentation: data, relativeTo: nil) {
+                    continuation.resume(returning: url)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+
+    // MARK: - 图片列表卡片（含缩放设置）
+
+    private var imageListCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 标题行
+            HStack {
+                Text(L.imageList)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text(String(format: L.itemCount, viewModel.imageItems.count))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button(L.clearAll) { viewModel.clearItems() }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.red)
+            }
+
+            Divider()
+
+            // 图片条目
+            LazyVStack(spacing: 4) {
+                ForEach(viewModel.imageItems) { item in
+                    ImageItemRow(
+                        item: item,
+                        onRemove: { viewModel.removeItem(item.id) },
+                        onFormatChange: { format in
+                            if let idx = viewModel.imageItems.firstIndex(where: { $0.id == item.id }) {
+                                viewModel.imageItems[idx].conversionFormat = format
+                            }
+                        },
+                        onQualityChange: { quality in
+                            if let idx = viewModel.imageItems.firstIndex(where: { $0.id == item.id }) {
+                                viewModel.imageItems[idx].quality = quality
+                            }
+                        },
+                        onResizeToggle: { enabled in
+                            if let idx = viewModel.imageItems.firstIndex(where: { $0.id == item.id }) {
+                                viewModel.imageItems[idx].resizeEnabled = enabled
+                            }
+                        },
+                        onMaxLongEdgeChange: { value in
+                            if let idx = viewModel.imageItems.firstIndex(where: { $0.id == item.id }) {
+                                viewModel.imageItems[idx].maxLongEdge = value
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+    }
+
+    // MARK: - 马上压缩按钮
+
+    @ViewBuilder
+    private var compressNowButton: some View {
+        HStack(spacing: 10) {
+            if viewModel.isCompressing {
+                ProgressView().controlSize(.small)
+                Text(L.converting).font(.caption).foregroundColor(.secondary)
+                Button(action: { viewModel.stopCompression() }) {
+                    Label(L.stopCompress, systemImage: "stop.fill")
+                }
+                .buttonStyle(.bordered).tint(.red)
+            } else {
+                Button(action: { viewModel.startCompression() }) {
+                    Label(L.compressNow, systemImage: "play.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
             Spacer()
         }
-        .padding(.vertical, 8)
     }
-    
+
+    // MARK: - Stats & Logs
+
     private var statsView: some View {
         HStack(spacing: 12) {
             StatBox(value: "\(viewModel.totalCompressed)", label: L.statCompressed)
             StatBox(value: viewModel.totalSaved.formattedSize(), label: L.statSaved)
             StatBox(value: String(format: "%.1f%%", viewModel.averageRatio), label: L.statRatio)
-            if viewModel.selectedEngine == .tinyPNG {
-                StatBox(
-                    value: viewModel.remainingCount.map { "\($0)" } ?? "—",
-                    label: L.statRemaining,
-                    valueColor: viewModel.remainingCount != nil && viewModel.remainingCount! < 50 ? .red : .primary
-                )
-            } else {
-                StatBox(value: "∞", label: L.statUnlimited)
-            }
+            StatBox(
+                value: viewModel.remainingCount.map { "\($0)" } ?? "—",
+                label: L.statRemaining,
+                valueColor: viewModel.remainingCount != nil && viewModel.remainingCount! < 50 ? .red : .primary
+            )
         }
     }
     
@@ -415,6 +463,150 @@ struct LogRow: View {
             Text(message)
                 .font(.system(size: 11))
                 .foregroundColor(.red)
+        }
+    }
+}
+
+// MARK: - Image Item Row
+
+struct ImageItemRow: View {
+    let item: ImageItem
+    let onRemove: () -> Void
+    let onFormatChange: (ConversionFormat) -> Void
+    let onQualityChange: (LocalCompressionQuality) -> Void
+    let onResizeToggle: (Bool) -> Void
+    let onMaxLongEdgeChange: (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            statusIcon
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(item.filename)
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                    Text(item.fileExtension.uppercased())
+                        .font(.system(size: 8, weight: .medium))
+                        .padding(.horizontal, 3).padding(.vertical, 1)
+                        .background(fileExtColor.opacity(0.15))
+                        .foregroundColor(fileExtColor)
+                        .cornerRadius(2)
+                    Text(item.formattedSize)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+
+                if !item.status.isProcessing {
+                    HStack(spacing: 4) {
+                        // 缩放 checkbox
+                        Toggle("缩放", isOn: Binding(
+                            get: { item.resizeEnabled },
+                            set: { onResizeToggle($0) }
+                        ))
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 10))
+
+                        if item.resizeEnabled {
+                            TextField("", value: Binding(
+                                get: { item.maxLongEdge },
+                                set: { onMaxLongEdgeChange($0) }
+                            ), formatter: {
+                                let f = NumberFormatter()
+                                f.minimum = 100; f.maximum = 8000; f.allowsFloats = false
+                                return f
+                            }())
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 42)
+                            .font(.system(size: 10))
+                            Text("px").font(.system(size: 9)).foregroundColor(.secondary)
+
+                            ForEach([1920, 1280, 800], id: \.self) { preset in
+                                Button("\(preset)") { onMaxLongEdgeChange(preset) }
+                                    .font(.system(size: 8))
+                                    .padding(.horizontal, 3).padding(.vertical, 1)
+                                    .background(item.maxLongEdge == preset ? Color.accentColor : Color(NSColor.controlBackgroundColor))
+                                    .foregroundColor(item.maxLongEdge == preset ? .white : .secondary)
+                                    .cornerRadius(3)
+                                    .buttonStyle(.plain)
+                            }
+                        }
+
+                        Spacer()
+
+                        // 格式转换
+                        Picker(L.convertFormat, selection: Binding(
+                            get: { item.conversionFormat },
+                            set: { onFormatChange($0) }
+                        )) {
+                            ForEach(ConversionFormat.availableFormats(for: item.fileExtension)) { f in
+                                Text(f.displayName).tag(f)
+                            }
+                        }
+                        .pickerStyle(.menu).labelsHidden()
+                        .frame(width: 100)
+                        .font(.system(size: 10))
+
+                        // 质量
+                        Picker(L.quality, selection: Binding(
+                            get: { item.quality },
+                            set: { onQualityChange($0) }
+                        )) {
+                            ForEach(LocalCompressionQuality.allCases) { q in
+                                Text(q.displayName).tag(q)
+                            }
+                        }
+                        .pickerStyle(.menu).labelsHidden()
+                        .frame(width: 80)
+                        .font(.system(size: 10))
+
+                        // 移除
+                        Button(action: onRemove) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary).font(.system(size: 13))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if item.status.isProcessing {
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(Color(NSColor.textBackgroundColor).opacity(0.5))
+        .cornerRadius(4)
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        switch item.status {
+        case .pending:
+            Image(systemName: "circle")
+                .foregroundColor(.secondary)
+                .font(.system(size: 10))
+        case .compressing:
+            ProgressView()
+                .scaleEffect(0.5)
+                .frame(width: 14, height: 14)
+        case .done:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.system(size: 13))
+        case .failed:
+            Image(systemName: "xmark.circle.fill")
+                .foregroundColor(.red)
+                .font(.system(size: 13))
+        }
+    }
+
+    private var fileExtColor: Color {
+        switch item.fileExtension.lowercased() {
+        case "png": return .blue
+        case "jpg", "jpeg": return .orange
+        default: return .secondary
         }
     }
 }

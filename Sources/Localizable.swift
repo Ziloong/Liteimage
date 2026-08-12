@@ -35,6 +35,7 @@ enum L {
     static let resizeHint = String(localized: "超出长边时等比缩放")
     static let overwriteHint = String(localized: "压缩后直接替换原文件")
     static let saveAsHint = String(localized: "压缩后保存为 xxx-compressed.xxx")
+    static let compressionHint = String(localized: "中质量：本地压缩（速度取决于电脑性能）\n高质量：网络压缩（速度取决于网络状况）")
     static let overwriteFooter = String(localized: "压缩完成后自动覆盖原文件")
     static let saveAsFooter = String(localized: "压缩完成后保存为 xxx-compressed.xxx")
 
@@ -86,11 +87,10 @@ enum L {
     static let waitingForGIFCompression = String(localized: "等待压缩...")
 
     // MARK: - Quality Presets
-    static let ultraLowQuality = String(localized: "超低质量")
+    static let noCompression = String(localized: "不压缩")
     static let lowQuality = String(localized: "低质量")
     static let mediumQuality = String(localized: "中等质量")
     static let highQuality = String(localized: "高质量")
-    static let ultraLowQualityDesc = String(localized: "最小体积，极低清晰度")
     static let lowQualityDesc = String(localized: "小文件，较低清晰度")
     static let mediumQualityDesc = String(localized: "平衡大小和清晰度")
     static let highQualityDesc = String(localized: "最佳清晰度，较大文件")
@@ -104,11 +104,36 @@ enum L {
     static let close = String(localized: "关闭")
     static let testing = String(localized: "测试中...")
     static let testAPI = String(localized: "测试 API 可用性")
+    static let testBackupAPI = String(localized: "测试备用 API")
+    static let backupAPIKeyLabel = String(localized: "备用 API Key")
+    static let backupAPIKeyHint = String(localized: "主 Key 额度用尽时自动切换（可选）")
+    static let restoreAPIKeys = String(localized: "还原默认 API Key")
+    static let restored = String(localized: "✅ 已还原为默认 API Key")
+    static let quotaExhausted = String(localized: "API 额度已用完")
     static let save = String(localized: "保存")
     static let apiKeyValid = String(localized: "✅ API Key 有效！本月已用 %d 次，剩余 %d 次")
     static let saved = String(localized: "✅ 已保存")
     static let repoLabel = String(localized: "项目仓库地址")
     static let feishuDocLabel = String(localized: "飞书文档")
+
+    // MARK: - Format Conversion
+    static let noConversion = String(localized: "不转换")
+    static let jpgToPng = String(localized: "JPG → PNG")
+    static let pngToJpg = String(localized: "PNG → JPG")
+    static let convertFormat = String(localized: "转换格式")
+    static let compressNow = String(localized: "马上压缩")
+    static let stopCompress = String(localized: "停止")
+    static let imageList = String(localized: "图片列表")
+    static let noImagesHint = String(localized: "拖放图片到上方区域开始")
+    static let itemCount = String(localized: "%d 个图片")
+    static let removeItem = String(localized: "移除")
+    static let converting = String(localized: "转换中...")
+
+    // MARK: - Debug
+    static let debugLog = String(localized: "Debug 日志")
+    static let debugLogHint = String(localized: "开启后将详细日志写入文件（~/Library/Logs/LiteImage/）")
+    static let viewLog = String(localized: "查看日志")
+    static let openLogDir = String(localized: "打开日志目录")
 
     // MARK: - Errors
     static let unknownError = String(localized: "未知错误")

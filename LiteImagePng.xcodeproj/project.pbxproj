@@ -24,9 +24,13 @@
 		E915123BEAC45B23B10374B7 /* TinyPNG_CompressorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD424397735BE10BED1D8FE0 /* TinyPNG_CompressorApp.swift */; };
 		F4B618C65001DDAD8052C3B9 /* GIFConverterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9663375C183D34BBC011827 /* GIFConverterViewModel.swift */; };
 		FABFD8E7764BB0EDC2E15BA0 /* LocalCompressorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEF338418EFA4ED5CCF38660 /* LocalCompressorService.swift */; };
+		F1A2B3C4D5E6F00100000001 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F00100000000 /* Logger.swift */; };
 		FF10000100000001FF100001 /* ffmpeg in Resources */ = {isa = PBXBuildFile; fileRef = B10CF02745C12BC7F21B3342 /* ffmpeg */; };
 		FF10000100000002FF100001 /* gifski in Resources */ = {isa = PBXBuildFile; fileRef = 26159D9453DA56638C5E65C8 /* gifski */; };
 		FF10000100000003FF100001 /* pngquant in Resources */ = {isa = PBXBuildFile; fileRef = 65F4BF993446A56CBCA2C5BE /* pngquant */; };
+		FF10000100000004FF100001 /* oxipng in Resources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F00200000000 /* oxipng */; };
+		FF10000100000005FF100001 /* zopflipng in Resources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F00300000000 /* zopflipng */; };
+		FF10000100000006FF100001 /* posterize in Resources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F00400000000 /* posterize */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +39,9 @@
 		5BBE0D5FE9524B346FD57F0D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6149687328444D9A321861D6 /* CompressorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompressorViewModel.swift; sourceTree = "<group>"; };
 		65F4BF993446A56CBCA2C5BE /* pngquant */ = {isa = PBXFileReference; path = pngquant; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F00200000000 /* oxipng */ = {isa = PBXFileReference; path = oxipng; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F00300000000 /* zopflipng */ = {isa = PBXFileReference; path = zopflipng; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F00400000000 /* posterize */ = {isa = PBXFileReference; path = posterize; sourceTree = "<group>"; };
 		6F0047BE4B703CBC935070AC /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		75FD14FD6C2117486F7E9D72 /* zh-Hans.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "zh-Hans.lproj"; path = "Sources/zh-Hans.lproj"; sourceTree = SOURCE_ROOT; };
 		8D64678B4730EA0FA83ED729 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -44,6 +51,7 @@
 		B17D4AA9365B16267C54523D /* DropZoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropZoneView.swift; sourceTree = "<group>"; };
 		B71B79C0FFF29511B2367BF9 /* Localizable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localizable.swift; sourceTree = "<group>"; };
 		BEF338418EFA4ED5CCF38660 /* LocalCompressorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCompressorService.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F00100000000 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		BF18BB306FB101C78FF0DAF1 /* libpng16.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libpng16.16.dylib; sourceTree = "<group>"; };
 		CC843167D1C46F604D5E1360 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D4E9BF923030F6AFA980FA85 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -62,6 +70,9 @@
 				26159D9453DA56638C5E65C8 /* gifski */,
 				BF18BB306FB101C78FF0DAF1 /* libpng16.16.dylib */,
 				65F4BF993446A56CBCA2C5BE /* pngquant */,
+				F1A2B3C4D5E6F00200000000 /* oxipng */,
+				F1A2B3C4D5E6F00300000000 /* zopflipng */,
+				F1A2B3C4D5E6F00400000000 /* posterize */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -76,6 +87,7 @@
 				E819AB8ED6B132C10802128B /* GIFConversionView.swift */,
 				D9663375C183D34BBC011827 /* GIFConverterViewModel.swift */,
 				BEF338418EFA4ED5CCF38660 /* LocalCompressorService.swift */,
+				F1A2B3C4D5E6F00100000000 /* Logger.swift */,
 				B71B79C0FFF29511B2367BF9 /* Localizable.swift */,
 				D4E9BF923030F6AFA980FA85 /* SettingsView.swift */,
 				3EAC9EC432E63B7C365576E8 /* SharedTypes.swift */,
@@ -174,6 +186,9 @@
 				FF10000100000001FF100001 /* ffmpeg in Resources */,
 				FF10000100000002FF100001 /* gifski in Resources */,
 				FF10000100000003FF100001 /* pngquant in Resources */,
+				FF10000100000004FF100001 /* oxipng in Resources */,
+				FF10000100000005FF100001 /* zopflipng in Resources */,
+				FF10000100000006FF100001 /* posterize in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -190,6 +205,7 @@
 				CA4A1762D4AEF842CBAD652A /* GIFConversionView.swift in Sources */,
 				F4B618C65001DDAD8052C3B9 /* GIFConverterViewModel.swift in Sources */,
 				FABFD8E7764BB0EDC2E15BA0 /* LocalCompressorService.swift in Sources */,
+				F1A2B3C4D5E6F00100000001 /* Logger.swift in Sources */,
 				5EF2036F3E52F8295A607BFC /* Localizable.strings in Sources */,
 				BC1992F8DB6439AE5B16C00B /* Localizable.swift in Sources */,
 				E674A975489855064A1CD35D /* SettingsView.swift in Sources */,

@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 // MARK: - 压缩引擎类型
 enum CompressionEngine: String, CaseIterable, Identifiable {
@@ -35,8 +36,7 @@ enum CompressionEngine: String, CaseIterable, Identifiable {
 
 // MARK: - 本地压缩质量
 enum LocalCompressionQuality: String, CaseIterable, Identifiable {
-    case ultraLow
-    case low
+    case none
     case medium
     case high
 
@@ -44,20 +44,27 @@ enum LocalCompressionQuality: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .ultraLow: return L.ultraLowQuality
-        case .low:      return L.lowQuality
-        case .medium:   return L.mediumQuality
-        case .high:     return L.highQuality
+        case .none:   return L.noCompression
+        case .medium: return L.mediumQuality
+        case .high:   return L.highQuality
         }
     }
 
-    /// pngquant --quality=min-max
+    /// pngquant --quality（.none 不会调用 pngquant）
     var pngquantRange: String {
         switch self {
-        case .ultraLow: return "10-20"
-        case .low:      return "40-60"
-        case .medium:   return "65-80"
-        case .high:     return "85-95"
+        case .none:   return "85-95"
+        case .medium: return "95-100"
+        case .high:   return "95-100"
+        }
+    }
+
+    /// JPEG 输出质量 (0.0-1.0)，.none 为无损最高质量
+    var jpegQuality: CGFloat {
+        switch self {
+        case .none:   return 1.0
+        case .medium: return 0.8
+        case .high:   return 0.9
         }
     }
 }
@@ -113,4 +120,77 @@ struct CompressionLog: Identifiable {
 struct CompressionResult {
     let compressedSize: Int64
     let compressionCount: Int
+}
+
+// MARK: - 格式转换选项
+enum ConversionFormat: String, CaseIterable, Identifiable {
+    case none
+    case jpgToPng
+    case pngToJpg
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none:     return L.noConversion
+        case .jpgToPng: return L.jpgToPng
+        case .pngToJpg: return L.pngToJpg
+        }
+    }
+
+    /// 根据文件扩展名返回可用的转换选项
+    static func availableFormats(for fileExtension: String) -> [ConversionFormat] {
+        switch fileExtension.lowercased() {
+        case "png":
+            return [.none, .pngToJpg]
+        case "jpg", "jpeg":
+            return [.none, .jpgToPng]
+        default:
+            return [.none]
+        }
+    }
+}
+
+// MARK: - 图片条目状态
+enum ImageItemStatus {
+    case pending
+    case compressing
+    case done
+    case failed
+
+    var isProcessing: Bool {
+        if case .compressing = self { return true }
+        return false
+    }
+}
+
+// MARK: - 图片条目（用于列表管理）
+struct ImageItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    let originalSize: Int64
+    var conversionFormat: ConversionFormat = .none
+    var quality: LocalCompressionQuality = .high
+    var resizeEnabled: Bool = false
+    var maxLongEdge: Int = 2048
+    var status: ImageItemStatus = .pending
+    var compressedSize: Int64?
+    var errorMessage: String?
+
+    var filename: String { url.lastPathComponent }
+    var fileExtension: String { url.pathExtension.lowercased() }
+
+    var formattedSize: String {
+        ByteCountFormatter.string(fromByteCount: originalSize, countStyle: .file)
+    }
+
+    var savedBytes: Int64 {
+        guard let compressed = compressedSize else { return 0 }
+        return max(0, originalSize - compressed)
+    }
+
+    var ratio: Double {
+        guard originalSize > 0, let compressed = compressedSize else { return 0 }
+        return Double(originalSize - compressed) / Double(originalSize) * 100
+    }
 }

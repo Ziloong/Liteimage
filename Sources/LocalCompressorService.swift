@@ -7,6 +7,10 @@ import UniformTypeIdentifiers
 /// 使用编译好的 pngquant 和 gifski 命令行工具进行本地图片压缩
 class LocalCompressorService: @unchecked Sendable {
 
+    /// 当前正在运行的进程（用于停止操作）
+    private var currentProcess: Process?
+    private let processLock = NSLock()
+
     enum CompressionError: LocalizedError {
         case toolNotFound(String)
         case compressionFailed(String)
@@ -43,6 +47,34 @@ class LocalCompressorService: @unchecked Sendable {
         }
     }
 
+    /// 终止当前正在运行的进程
+    func terminateCurrentProcess() {
+        processLock.lock()
+        defer { processLock.unlock() }
+        guard let proc = currentProcess, proc.isRunning else { return }
+        proc.terminate()
+        // 如果 1 秒内还没结束，强制杀
+        DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+            if proc.isRunning {
+                proc.interrupt()
+            }
+        }
+    }
+
+    /// 安全运行进程（可被 terminateCurrentProcess 中断）
+    private func runTrackedProcess(_ process: Process) throws {
+        processLock.lock()
+        currentProcess = process
+        processLock.unlock()
+        defer {
+            processLock.lock()
+            currentProcess = nil
+            processLock.unlock()
+        }
+        try process.run()
+        process.waitUntilExit()
+    }
+
     // 工具路径
     private var pngquantPath: String {
         Bundle.main.resourcePath.map { "\($0)/pngquant" } ?? ""
@@ -52,6 +84,18 @@ class LocalCompressorService: @unchecked Sendable {
         Bundle.main.resourcePath.map { "\($0)/gifski" } ?? ""
     }
 
+    private var oxipngPath: String {
+        Bundle.main.resourcePath.map { "\($0)/oxipng" } ?? ""
+    }
+
+    private var zopflipngPath: String {
+        Bundle.main.resourcePath.map { "\($0)/zopflipng" } ?? ""
+    }
+
+    private var posterizePath: String {
+        Bundle.main.resourcePath.map { "\($0)/posterize" } ?? ""
+    }
+
     /// 压缩 PNG 图片
     /// - Parameters:
     ///   - inputURL: 输入文件 URL
@@ -59,7 +103,8 @@ class LocalCompressorService: @unchecked Sendable {
     ///   - qualityRange: 质量范围字符串，格式 "min-max"，例如 "85-95"，默认高质量
     ///   - speed: 速度 1-11，默认 4
     /// - Returns: 压缩结果
-    func compressPNG(inputURL: URL, outputURL: URL, qualityRange: String = "85-95", speed: Int = 4) async throws -> CompressionResult {
+    func compressPNG(inputURL: URL, outputURL: URL, qualityRange: String = "85-95", speed: Int = 1) async throws -> CompressionResult {
+        Logger.shared.log("  🔧 pngquant: \(inputURL.lastPathComponent) quality=\(qualityRange) speed=\(speed)")
         // 检查工具是否存在
         guard FileManager.default.fileExists(atPath: pngquantPath) else {
             throw CompressionError.toolNotFound("pngquant")
@@ -84,19 +129,20 @@ class LocalCompressorService: @unchecked Sendable {
                 process.standardError = errorPipe
 
                 do {
-                    try process.run()
-                    process.waitUntilExit()
+                    try self.runTrackedProcess(process)
 
                     // 检查是否成功
                     guard process.terminationStatus == 0 else {
                         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                         let errorMessage = String(data: errorData, encoding: .utf8) ?? "未知错误"
+                        Logger.shared.log("  ❌ pngquant 失败 (exit=\(process.terminationStatus)): \(errorMessage)")
                         continuation.resume(throwing: CompressionError.compressionFailed(errorMessage))
                         return
                     }
 
                     // 验证输出文件
                     guard FileManager.default.fileExists(atPath: outputURL.path) else {
+                        Logger.shared.log("  ❌ pngquant 输出文件缺失: \(outputURL.path)")
                         continuation.resume(throwing: CompressionError.outputFileMissing(outputURL.path))
                         return
                     }
@@ -108,6 +154,7 @@ class LocalCompressorService: @unchecked Sendable {
                         compressedSize: compressedSize,
                         compressionRatio: Double(compressedSize) / Double(originalSize)
                     )
+                    Logger.shared.log("    pngquant 完成: \(originalSize.formattedSize()) → \(compressedSize.formattedSize())")
 
                     continuation.resume(returning: result)
 
@@ -126,6 +173,7 @@ class LocalCompressorService: @unchecked Sendable {
     ///   - width: 输出宽度（可选，自动调整）
     /// - Returns: 压缩结果
     func compressGIF(inputURL: URL, outputURL: URL, quality: Int = 10, width: Int? = nil) async throws -> CompressionResult {
+        Logger.shared.log("  🔧 gifski: \(inputURL.lastPathComponent) quality=\(quality) width=\(width?.description ?? "auto")")
         // 检查工具是否存在
         guard FileManager.default.fileExists(atPath: gifskiPath) else {
             throw CompressionError.toolNotFound("gifski")
@@ -152,13 +200,13 @@ class LocalCompressorService: @unchecked Sendable {
                 process.standardError = errorPipe
 
                 do {
-                    try process.run()
-                    process.waitUntilExit()
+                    try self.runTrackedProcess(process)
 
                     // 检查是否成功
                     guard process.terminationStatus == 0 else {
                         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
                         let errorMessage = String(data: errorData, encoding: .utf8) ?? "未知错误"
+                        Logger.shared.log("  ❌ gifski 失败 (exit=\(process.terminationStatus)): \(errorMessage)")
                         continuation.resume(throwing: CompressionError.compressionFailed(errorMessage))
                         return
                     }
@@ -209,6 +257,7 @@ class LocalCompressorService: @unchecked Sendable {
     ///   - maxLongEdge: 目标长边像素
     /// - Returns: true 表示执行了缩放，false 表示图片已经在限制以内无需缩放
     func resizeIfNeeded(inputURL: URL, outputURL: URL, maxLongEdge: Int) async throws -> Bool {
+        Logger.shared.log("  📐 缩放: \(inputURL.lastPathComponent) targetLongEdge=\(maxLongEdge)")
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 guard let imageSource = CGImageSourceCreateWithURL(inputURL as CFURL, nil),
@@ -275,6 +324,179 @@ class LocalCompressorService: @unchecked Sendable {
                     continuation.resume(returning: true)
                 } else {
                     continuation.resume(throwing: CompressionError.compressionFailed("缩放图片保存失败"))
+                }
+            }
+        }
+    }
+
+    /// 将图片转换为 JPEG 格式
+    /// - Parameters:
+    ///   - inputURL: 输入图片 URL（PNG 等格式）
+    ///   - outputURL: 输出 JPEG 文件 URL
+    ///   - quality: JPEG 质量 0.0-1.0
+    ///   - maxLongEdge: 可选的长边缩放目标（传 nil 则不缩放）
+    func convertToJPEG(inputURL: URL, outputURL: URL, quality: CGFloat, maxLongEdge: Int? = nil) async throws {
+        Logger.shared.log("  🖼 JPEG转换: \(inputURL.lastPathComponent) quality=\(String(format: "%.0f", quality*100))% longEdge=\(maxLongEdge?.description ?? "none")")
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let imageSource = CGImageSourceCreateWithURL(inputURL as CFURL, nil),
+                      let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+                    continuation.resume(throwing: CompressionError.unsupportedFormat("无法读取图片"))
+                    return
+                }
+
+                let imageToWrite: CGImage
+                if let maxEdge = maxLongEdge, maxEdge > 0 {
+                    let srcWidth = cgImage.width
+                    let srcHeight = cgImage.height
+                    let srcLongEdge = max(srcWidth, srcHeight)
+                    if srcLongEdge != maxEdge {
+                        let ratio = CGFloat(maxEdge) / CGFloat(srcLongEdge)
+                        let dstWidth = Int(CGFloat(srcWidth) * ratio)
+                        let dstHeight = Int(CGFloat(srcHeight) * ratio)
+
+                        guard let colorSpace = cgImage.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
+                              let context = CGContext(
+                                data: nil,
+                                width: dstWidth,
+                                height: dstHeight,
+                                bitsPerComponent: 8,
+                                bytesPerRow: 0,
+                                space: colorSpace,
+                                bitmapInfo: cgImage.bitmapInfo.rawValue
+                              ),
+                              let resized = context.makeImage() else {
+                            continuation.resume(throwing: CompressionError.compressionFailed("JPEG 转换缩放失败"))
+                            return
+                        }
+                        context.interpolationQuality = .high
+                        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: dstWidth, height: dstHeight))
+                        imageToWrite = resized
+                    } else {
+                        imageToWrite = cgImage
+                    }
+                } else {
+                    imageToWrite = cgImage
+                }
+
+                guard let dest = CGImageDestinationCreateWithURL(
+                    outputURL as CFURL,
+                    UTType.jpeg.identifier as CFString,
+                    1, nil
+                ) else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("JPEG 输出文件创建失败"))
+                    return
+                }
+
+                let options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: quality]
+                CGImageDestinationAddImage(dest, imageToWrite, options as CFDictionary)
+
+                if CGImageDestinationFinalize(dest) {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("JPEG 保存失败"))
+                }
+            }
+        }
+    }
+
+    /// 将图片转换为 PNG 格式（无损）
+    func convertToPNG(inputURL: URL, outputURL: URL) async throws {
+        Logger.shared.log("  🖼 PNG转换: \(inputURL.lastPathComponent)")
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard let imageSource = CGImageSourceCreateWithURL(inputURL as CFURL, nil),
+                      let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+                    continuation.resume(throwing: CompressionError.unsupportedFormat("无法读取图片"))
+                    return
+                }
+
+                guard let dest = CGImageDestinationCreateWithURL(
+                    outputURL as CFURL,
+                    UTType.png.identifier as CFString,
+                    1, nil
+                ) else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("PNG 输出文件创建失败"))
+                    return
+                }
+
+                CGImageDestinationAddImage(dest, cgImage, nil)
+                if CGImageDestinationFinalize(dest) {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: CompressionError.compressionFailed("PNG 保存失败"))
+                }
+            }
+        }
+    }
+
+    /// 用 oxipng 无损优化 PNG（level 6 最高压缩）
+    func optimizeWithOxipng(inputURL: URL) async throws {
+        guard FileManager.default.fileExists(atPath: oxipngPath) else {
+            Logger.shared.log("  ⚠️ oxipng 未找到，跳过优化")
+            return
+        }
+
+        Logger.shared.log("  🔧 oxipng(opt=6) 优化: \(inputURL.lastPathComponent)")
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: self.oxipngPath)
+                process.arguments = ["--opt", "6", "--strip", "all", inputURL.path]
+
+                let errorPipe = Pipe()
+                process.standardError = errorPipe
+
+                do {
+                    try self.runTrackedProcess(process)
+
+                    if process.terminationStatus != 0 {
+                        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                        let errorMessage = String(data: errorData, encoding: .utf8) ?? "未知错误"
+                        Logger.shared.log("  ⚠️ oxipng 警告 (exit=\(process.terminationStatus)): \(errorMessage)")
+                    } else {
+                        Logger.shared.log("    oxipng 优化完成")
+                    }
+                    continuation.resume()
+                } catch {
+                    Logger.shared.log("  ⚠️ oxipng 运行失败: \(error.localizedDescription)")
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    /// 用 Posterizer 预量化 PNG（pngquant 前处理，减少颜色数同时保持视觉质量）
+    func posterizePNG(inputURL: URL, outputURL: URL) async throws {
+        guard FileManager.default.fileExists(atPath: posterizePath) else {
+            throw CompressionError.toolNotFound("posterize")
+        }
+
+        Logger.shared.log("  🎨 posterize 预量化: \(inputURL.lastPathComponent)")
+        return try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: self.posterizePath)
+                process.arguments = ["-Q", "80", "-b", "-d", inputURL.path, outputURL.path]
+
+                let errorPipe = Pipe()
+                process.standardError = errorPipe
+
+                do {
+                    try self.runTrackedProcess(process)
+
+                    if process.terminationStatus != 0 {
+                        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                        let errorMessage = String(data: errorData, encoding: .utf8) ?? "未知错误"
+                        Logger.shared.log("  ❌ posterize 失败 (exit=\(process.terminationStatus)): \(errorMessage)")
+                        continuation.resume(throwing: CompressionError.compressionFailed(errorMessage))
+                    } else {
+                        Logger.shared.log("    posterize 完成")
+                        continuation.resume()
+                    }
+                } catch {
+                    Logger.shared.log("  ❌ posterize 运行失败: \(error.localizedDescription)")
+                    continuation.resume(throwing: error)
                 }
             }
         }

@@ -1,0 +1,1132 @@
+pngquant — lossy PNG compressor
+  URL: https://pngquant.org/
+  # pngquant
+## Download
+### Source code
+```
+git clone --recursive https://github.com/kornelski/pngquant.git
+```
+
+## Manual
+### Options
+```
+pngquant --quality=65-80 image.png
+```
+
+## Algorithm
+`pngquant` uses modified version of Median Cut quantization algorithm and additional techniques to mitigate deficiencies of Median Cut.
+
+## See also
+- [`libimagequant`](https://pngquant.org/lib) — embeddable quantization library that powers `pngquant`
+
+  --- Content ---
+  [![Quantized logo](https://pngquant.org/pngquant-logo-small.png)](https://pngquant.org/pngquant-logo.png)
+  
+  # pngquant
+  
+  `pngquant` is a command-line utility and [a library](https://pngquant.org/lib) for lossy compression of PNG images.
+  
+  The conversion reduces file sizes significantly (often as much as 70%) and preserves **full alpha transparency**. Generated images are compatible with all web browsers and operating systems.
+  
+  ## Features
+  
+  - High-quality palette generation using a combination of vector quantization [algorithms](https://pngquant.org/#algorithm).
+  - Unique adaptive dithering algorithm that adds less noise to images than the standard Floyd-Steinberg.
+  - Easy to integrate with shell scripts, GUIs and server-side software.
+  - Fast mode for real-time processing/large numbers of images.
+  
+  |     |     |
+  | --- | --- |
+  | ![original](https://pngquant.org/Ducati_side_shadow.png) | [![tiny png converted](https://pngquant.org/Ducati_side_shadow-fs8.png)](https://pngquant.org/vsphotoshop.html) |
+  | Original PNG: **75,628** bytes | pngquant: **19,996** bytes ( **73%** smaller) |
+  
+  ## Download
+  
+  The latest stable version of `pngquant` CLI is 3.0.3 ( [old C releases](https://pngquant.org/releases.html), [Rust crate](https://lib.rs/crates/pngquant)). The latest stable version of `libimagequant` is 4.x and the [Rust library](https://lib.rs/crates/imagequant) is [released directly to crates.io](https://crates.io/crates/imagequant) ( [changelog](https://raw.github.com/kornelski/pngquant/main/CHANGELOG), [feed](https://github.com/kornelski/pngquant/commits/main.atom)).
+  
+  ### GUI
+  
+  - [ImageOptim](https://imageoptim.com/mac) — macOS GUI for `pngquant` and other tools
+  - [SuperPNG **Photoshop plug-in**](http://www.fnordware.com/superpng/) — Mac and Windows. [Comparison with "Save for Web"](https://pngquant.org/vsphotoshop.html)
+  - [Pngyu](https://nukesaq88.github.io/Pngyu/) — macOS and Windows GUI with batch processing option
+  - [PNGoo](https://pngquant.org/PNGoo.0.1.1.zip) — Windows GUI for batch conversion
+  - [ImageOptim API](https://imageoptim.com/api) — image compression web service that automatically uses `pngquant`.
+  
+  ### Command-line
+  
+  - [Binary for macOS](https://pngquant.org/pngquant.tar.bz2)(v3.0.3) — you can run `brew install pngquant` too.
+  - [Binary for Windows](https://pngquant.org/pngquant-windows.zip)
+  - [Binary for Linux](https://pngquant.org/pngquant-linux.tar.bz2)(v3.0.3)
+  - [Package for Debian](https://packages.debian.org/bookworm/pngquant)
+  - [Various Linux packages](https://pkgs.org/download/pngquant), [Snap](https://snapcraft.io/pngquant)
+  - [Latest source code](https://github.com/kornelski/pngquant)(to [build](https://pngquant.org/install.html) on other platforms)
+  
+  ### Source code
+  
+  [The latest version](https://github.com/ImageOptim/libimagequant) is [written in Rust](https://pngquant.org/rust.html). There is also a previous version [written in C99](https://github.com/kornelski/pngquant/tree/2.x). Both are available under the [GPL](https://raw.github.com/kornelski/pngquant/main/COPYRIGHT) or a [commercial license](https://supso.org/projects/pngquant). The [project is hosted on GitHub](https://github.com/kornelski/pngquant).
+  
+  ```
+  git clone --recursive https://github.com/kornelski/pngquant.git
+  ```
+  
+  ## Authors
+  
+  `pngquant` is developed by [Kornel Lesiński](https://kornel.ski/about) and [contributors](https://github.com/kornelski/pngquant/graphs/contributors). It has evolved from a project by [Greg Roelofs](http://www.gregroelofs.com/) and [Jef Poskanzer](http://www.acme.com/jef/).
+  
+  Please [submit bug reports or feature requests](https://github.com/kornelski/pngquant/issues) on GitHub.
+  
+  ### Donate
+  
+  [Donations are welcome via PayPal](https://paypal.me/kornel). Thank you for your support!
+  
+  ## Manual
+  
+  - batch conversion of multiple files: `pngquant 256 *.png` ( [recursive processing](https://stackoverflow.com/a/9649214))
+  
+  - Unix-style stdin/stdout chaining: `… | pngquant 16 | …`
+  - [Running from PHP](https://pngquant.org/php.html)
+  
+  To further reduce file size use [oxipng](https://lib.rs/crates/oxipng) or [ImageOptim](https://imageoptim.com/).
+  
+  ### Options
+  
+  See `pngquant -h` for full list of options.
+  
+  `--ext new.png`
+  
+  Set custom extension for output filename. By default `-or8.png` or `-fs8.png` is used.
+  
+  `--quality min-max`
+  
+  Instructs `pngquant` to use the least amount of colors required to meet or exceed the max quality. If conversion results in quality below the min quality the image won't be saved (if outputting to stdout, 24-bit original will be output) and `pngquant` will exit with status code 99.
+  
+  min and max are numbers in range 0 (worst) to 100 (perfect), similar to JPEG.
+  
+  ```
+  pngquant --quality=65-80 image.png
+  ```
+  
+  `--speed N`, `-sN`
+  
+  Speed/quality trade-off from 1 (brute-force) to 10 (fastest). The default is 3. Speed 10 has 5% lower quality, but is 8 times faster than the default.
+  
+  `--version`
+  
+  Print version information to stdout.
+  
+  `-`
+  
+  Read image from stdin and send result to stdout.
+  
+  `--`
+  
+  Stops processing of arguments. This allows use of file names that start with `-`. If you're using `pngquant` in a script, it's advisable to put this before file names:
+  
+  ```
+  pngquant $OPTIONS -- "$FILE"
+  ```
+  
+  ## Algorithm
+  
+  `pngquant` uses modified version of Median Cut quantization algorithm and additional techniques to mitigate deficiencies of Median Cut.
+  
+  Instead of splitting boxes with largest volume or number of colors, boxes are selected to minimize variance from their median value.
+  
+  Histogram is built with addition of a basic perception model, which gives less weight to noisy areas of the image.
+  
+  To improve color further, histogram is adjusted in a process similar to gradient descent (Median Cut is repeated many times with more weight on poorly represented colors).
+  
+  Finally, colors are corrected using Voronoi iteration (K-means), which guarantees locally optimal palette.
+  
+  `pngquant` works in premultiplied alpha color space to give less weight to transparent colors.
+  
+  When remapping, error diffusion is applied only to areas where several neighboring pixels quantize to the same value, and which are not edges. This avoids adding noise to areas which have high visual quality without dithering.
+  
+  ## See also
+  
+  - [`libimagequant`](https://pngquant.org/lib) — embeddable quantization library that powers `pngquant`
+  - [Overview of PNG optimisation tools](http://css-ig.net/png-tools-overview.html)
+  - [Posterizer](https://github.com/kornelski/mediancut-posterizer) — image quantizer for millions of colors
+  - [RGBA image comparison tool](https://kornel.ski/dssim)
+  --- End Content ---
+
+pngquant PNG optimisation tool and libimagequant library ("pornel ...
+  URL: https://github.com/besser82/improved-pngquant
+  ## Repository files navigation
+```
+pngquant --quality=65-80 image.png
+```
+  Category: github
+
+  --- Content ---
+  [Skip to content](https://github.com/besser82/improved-pngquant#start-of-content)
+  
+  You signed in with another tab or window. [Reload](https://github.com/besser82/improved-pngquant) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/besser82/improved-pngquant) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/besser82/improved-pngquant) to refresh your session.Dismiss alert
+  
+  {{ message }}
+  
+  [besser82](https://github.com/besser82)/ **[improved-pngquant](https://github.com/besser82/improved-pngquant)** Public
+  
+  forked from [kornelski/pngquant](https://github.com/kornelski/pngquant)
+  
+  - [Notifications](https://github.com/login?return_to=%2Fbesser82%2Fimproved-pngquant) You must be signed in to change notification settings
+  - [Fork\\
+  0](https://github.com/login?return_to=%2Fbesser82%2Fimproved-pngquant)
+  - [Star\\
+  3](https://github.com/login?return_to=%2Fbesser82%2Fimproved-pngquant)
+  
+  
+  master
+  
+  [**5** Branches](https://github.com/besser82/improved-pngquant/branches) [**20** Tags](https://github.com/besser82/improved-pngquant/tags)
+  
+  [Go to Branches page](https://github.com/besser82/improved-pngquant/branches)[Go to Tags page](https://github.com/besser82/improved-pngquant/tags)
+  
+  Go to file
+  
+  Code
+  
+  Open more actions menu
+  
+  This branch is [622 commits behind](https://github.com/besser82/improved-pngquant/compare/master...kornelski%3Apngquant%3Amain) kornelski/pngquant:main.
+  
+  ## Folders and files
+  
+  | Name | Name | Last commit message | Last commit date |
+  | --- | --- | --- | --- |
+  | ## Latest commit<br>[![kornelski](https://avatars.githubusercontent.com/u/72159?v=4&size=40)](https://github.com/kornelski)[kornelski](https://github.com/besser82/improved-pngquant/commits?author=kornelski)<br>[Clamp alpha dithering separately from colors](https://github.com/besser82/improved-pngquant/commit/aeec502f4c0f4df8568aab1c52369ffb8c13f5d7)<br>Open commit details<br>13 years agoJul 27, 2013<br>[aeec502](https://github.com/besser82/improved-pngquant/commit/aeec502f4c0f4df8568aab1c52369ffb8c13f5d7) · 13 years agoJul 27, 2013<br>## History<br>[590 Commits](https://github.com/besser82/improved-pngquant/commits/master/) <br>Open commit details<br>[View commit history for this file.](https://github.com/besser82/improved-pngquant/commits/master/) 590 Commits |
+  | [lib](https://github.com/besser82/improved-pngquant/tree/master/lib "lib") | [lib](https://github.com/besser82/improved-pngquant/tree/master/lib "lib") |  |  |
+  | [.gitignore](https://github.com/besser82/improved-pngquant/blob/master/.gitignore ".gitignore") | [.gitignore](https://github.com/besser82/improved-pngquant/blob/master/.gitignore ".gitignore") |  |  |
+  | [CHANGELOG](https://github.com/besser82/improved-pngquant/blob/master/CHANGELOG "CHANGELOG") | [CHANGELOG](https://github.com/besser82/improved-pngquant/blob/master/CHANGELOG "CHANGELOG") |  |  |
+  | [COPYRIGHT](https://github.com/besser82/improved-pngquant/blob/master/COPYRIGHT "COPYRIGHT") | [COPYRIGHT](https://github.com/besser82/improved-pngquant/blob/master/COPYRIGHT "COPYRIGHT") |  |  |
+  | [INSTALL](https://github.com/besser82/improved-pngquant/blob/master/INSTALL "INSTALL") | [INSTALL](https://github.com/besser82/improved-pngquant/blob/master/INSTALL "INSTALL") |  |  |
+  | [Makefile](https://github.com/besser82/improved-pngquant/blob/master/Makefile "Makefile") | [Makefile](https://github.com/besser82/improved-pngquant/blob/master/Makefile "Makefile") |  |  |
+  | [README.md](https://github.com/besser82/improved-pngquant/blob/master/README.md "README.md") | [README.md](https://github.com/besser82/improved-pngquant/blob/master/README.md "README.md") |  |  |
+  | [pngquant.1](https://github.com/besser82/improved-pngquant/blob/master/pngquant.1 "pngquant.1") | [pngquant.1](https://github.com/besser82/improved-pngquant/blob/master/pngquant.1 "pngquant.1") |  |  |
+  | [pngquant.c](https://github.com/besser82/improved-pngquant/blob/master/pngquant.c "pngquant.c") | [pngquant.c](https://github.com/besser82/improved-pngquant/blob/master/pngquant.c "pngquant.c") |  |  |
+  | [pngquant.spec](https://github.com/besser82/improved-pngquant/blob/master/pngquant.spec "pngquant.spec") | [pngquant.spec](https://github.com/besser82/improved-pngquant/blob/master/pngquant.spec "pngquant.spec") |  |  |
+  | [rwpng.c](https://github.com/besser82/improved-pngquant/blob/master/rwpng.c "rwpng.c") | [rwpng.c](https://github.com/besser82/improved-pngquant/blob/master/rwpng.c "rwpng.c") |  |  |
+  | [rwpng.h](https://github.com/besser82/improved-pngquant/blob/master/rwpng.h "rwpng.h") | [rwpng.h](https://github.com/besser82/improved-pngquant/blob/master/rwpng.h "rwpng.h") |  |  |
+  | [rwpng\_cocoa.m](https://github.com/besser82/improved-pngquant/blob/master/rwpng_cocoa.m "rwpng_cocoa.m") | [rwpng\_cocoa.m](https://github.com/besser82/improved-pngquant/blob/master/rwpng_cocoa.m "rwpng_cocoa.m") |  |  |
+  | View all files |
+  
+  ## Repository files navigation
+  
+  #pngquant 2
+  
+  This is the official `pngquant` and `libimagequant`.
+  
+  [pngquant](http://pngquant.org/) converts 24/32-bit RGBA PNGs to 8-bit palette with _alpha channel preserved_.
+  Such images are compatible with all modern browsers, and a special compatibility setting exists which helps transparency degrade well in Internet Explorer 6.
+  
+  Quantized files are often 40-70% smaller than their 24/32-bit version.
+  
+  This utility works on Linux, Mac OS X and Windows.
+  
+  ##Usage
+  
+  - batch conversion of multiple files: `pngquant *.png`
+  - Unix-style stdin/stdout chaining: `… | pngquant - | …`
+  
+  To further reduce file size, try [optipng](http://optipng.sourceforge.net/) or [ImageOptim](http://imageoptim.pornel.net/).
+  
+  ##Improvements since 1.0
+  
+  Generated files are both smaller and look much better.
+  
+  - Significantly better quality of quantisation
+    - more accurate remapping of semitransparent colors
+    - special dithering algorithm that does not add noise in well-quantized areas of the image
+    - uses variance instead of popularity for box selection (improvement suggested in the original median cut paper)
+    - feedback loop that repeats median cut for poorly quantized colors
+    - additional colormap improvement using Voronoi iteration
+    - supports much larger number of colors in input images without degradation of quality
+    - gamma correction (output is always generated with gamma 2.2 for web compatibility)
+  - More flexible commandline usage
+    - number of colors defaults to 256
+    - long options and standard switches like `--` and `-` are allowed
+  - Refactored and modernised code
+    - C99 with no workarounds for old systems
+    - floating-point math used throughout
+    - Intel SSE optimisations
+    - multicore support via OpenMP
+    - quantization moved to standalone libimagequant
+  
+  ##Options
+  
+  See `pngquant -h` for full list.
+  
+  ###`--quality min-max`
+  
+  `min` and `max` are numbers in range 0 (worst) to 100 (perfect), similar to JPEG. pngquant will use the least amount of colors required to meet or exceed the `max` quality. If conversion results in quality below the `min` quality the image won't be saved (if outputting to stdin, 24-bit original will be output) and pngquant will exit with status code 99.
+  
+  ```
+  pngquant --quality=65-80 image.png
+  ```
+  
+  ###`--ext new.png`
+  
+  Set custom extension (suffix) for output filename. By default `-or8.png` or `-fs8.png` is used. If you use `--ext=.png --force` options pngquant will overwrite input files in place (use with caution).
+  
+  ###`--speed N`
+  
+  Speed/quality trade-off from 1 (brute-force) to 11 (fastest). The default is 3. Speed 10 has 5% lower quality, but is 8 times faster than the default. Speed 11 disables dithering and lowers compression level.
+  
+  ###`--nofs`
+  
+  Disables Floyd-Steinberg dithering.
+  
+  ###`--iebug`
+  
+  Workaround for IE6, which only displays fully opaque pixels. pngquant will make almost-opaque pixels fully opaque and will avoid creating new transparent colors.
+  
+  ###`--version`
+  
+  Print version information to stdout.
+  
+  ###`-`
+  
+  Read image from stdin and send result to stdout.
+  
+  ###`--`
+  
+  Stops processing of arguments. This allows use of file names that start with `-`. If you're using pngquant in a script, it's advisable to put this before file names:
+  
+  ```
+  pngquant $OPTIONS -- "$FILE"
+  ```
+  
+  ## About
+  
+  pngquant PNG optimisation tool and libimagequant library ("pornel/improved-pngquant" is the official repository of the project)
+  
+  [pngquant.org](http://pngquant.org/)
+  
+  ### Resources
+  
+  [Readme](https://github.com/besser82/improved-pngquant#readme-ov-file)
+  
+  [License](https://github.com/besser82/improved-pngquant#License-1-ov-file)
+  
+  [Activity](https://github.com/besser82/improved-pngquant/activity)
+  
+  ### Stars
+  
+  **3** stars
+  
+  ### Watchers
+  
+  **2** watching
+  
+  ### Forks
+  
+  [**0** forks](https://github.com/besser82/improved-pngquant/forks)
+  
+  [Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fbesser82%2Fimproved-pngquant&report=besser82+%28user%29)
+  
+  ## Releases
+  
+  ## Packages
+  
+  ## Contributors
+  
+  ## Languages
+  
+  You can’t perform that action at this time.
+  --- End Content ---
+
+Use pngquant (libimagequant) for quantization to palette
+  URL: https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340
+  # Legacy ImageMagick Discussions Archive
+## [Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+### [Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p97994)
+Quantization algorithm currently used by ImageMagick posterizes images unnecessarily, doesn't support alpha transparency, and is slower than quantizers of comparable quality (like the 15-bit mediancut from libjpeg).
+
+  --- Content ---
+  [Magick](https://imagemagick.org/ "Magick")
+  
+  # Legacy ImageMagick Discussions Archive
+  
+  Use https://github.com/ImageMagick/ImageMagick/discussions instead.
+  
+  [Skip to content](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340#start_here)
+  
+  Search[Advanced search](https://jqmagick.imagemagick.org/discourse-server/search.php?sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Advanced search")
+  
+  ## [Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  Questions and postings pertaining to the development of ImageMagick, feature enhancements, and ImageMagick internals. ImageMagick source code and algorithms are discussed here. Usage questions which are too arcane for the normal user list should also be posted here.
+  
+  [Post Reply](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=reply&t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Post a reply")
+  
+  - [Print view](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5&view=print "Print view")
+  
+  Search[Advanced search](https://jqmagick.imagemagick.org/discourse-server/search.php?sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Advanced search")
+  
+  14 posts
+  • Page **1** of **1**
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p97994)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=97994&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p97994 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2013-05-03T15:55:46-07:00
+  
+  I've refactored [pngquant](http://pngquant.org/) into a [library (libimagequant)](http://pngquant.org/lib) that can be embedded in other software (BSD-like license). I'd like to propose incorporating this library into ImageMagick.
+  
+  Quantization algorithm currently used by ImageMagick posterizes images unnecessarily, doesn't support alpha transparency, and is slower than quantizers of comparable quality (like the 15-bit mediancut from libjpeg).
+  
+  [Comparison with pngquant](http://imgur.com/a/Lm8Ia) based on [this image](http://paulirish.com/lovesyou/new-browser-logos/firefox-512.png):
+  
+  ImageMagick: ![Image](http://i.imgur.com/h3aA5Qp.png) pngquant: ![Image](http://i.imgur.com/1GBoJz1.png)
+  
+  Both have essentially the same file size, took about the same time to generate (0.6/0.7s), but pngquant version is visibly less posterized _and_ even had lots colors to spare for semitransparencies of the shadow.
+  
+  Images above are without dithering, because in this particular case ImageMagick produces [malformed image](http://i.imgur.com/UArOjUP.png) when dithering is on. [Another comparison](http://imgur.com/a/WIin2):
+  
+  ImageMagick: ![Image](http://i.imgur.com/ObzYN0I.png) pngquant: ![Image](http://i.imgur.com/kLpyCiH.png)
+  
+  Note that the first image is quite noisy (especially in dark areas) and brightest points on the yellow ball are remapped incorrectly.
+  
+  So overall I think switch to pngquant's quantization and remapping would be a significant quality improvement without loss of speed or file sizes. pngquant also has fast-and-rough speed setting that is 2.5 to 6 times faster than ImageMagick's current algorithm while still mostly winning in quality.
+  
+  Would you be interested in adopting the library?
+  
+  It's written in C99, doesn't have any dependencies, less than 60KB compiled. Optionally supports OpenMP and SSE optimizations. It's successfully [integrated with LibGD already](https://bitbucket.org/libgd/gd-libgd/commits/3e41e98be66d704a4e2ba22a6723479d73a0df10).
+  
+  More info/documentation: [http://pngquant.org/lib/](http://pngquant.org/lib/) and [source](https://github.com/pornel/improved-pngquant/tree/master/lib).
+  
+  From what I've gathered by looking at ImageMagick's source code is that currently ImageMagick supports generating palette from arbitrary number of images. The library can do that too, but I haven't added public API for it yet. I will if you're interested.
+  
+  [![User avatar](https://jqmagick.imagemagick.org/discourse-server/download/file.php?avatar=2_1655996059.jpg)](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=2&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  [magick](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=2&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)Site Admin**Posts:** [11064](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=2&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2003-05-31T11:32:55-07:00
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=97997&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p97997)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=97997&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=97997&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=97997&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p97997 "Post") by **[magick](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=2&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2013-05-03T16:46:05-07:00
+  
+  We recommend creating a binding to ImageMagick as an image filter. See [http://www.imagemagick.org/script/archi ... hp#filters](http://www.imagemagick.org/script/architecture.php#filters). Image filters are staging areas for experimental code. With an image filter, users can test the quantization algorithm and provide feedback. Once the bugs are resolved and there is a degree of stability and user acceptance, we will consider including it in the main ImageMagick distribution.
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=104802&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=104802&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p104802)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=104802&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=104802&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=104802&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p104802 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2013-11-10T10:04:00-07:00
+  
+  bump.
+  
+  Unfortunately [I wasn't able to get filters to compile](http://www.imagemagick.org/discourse-server/viewtopic.php?t=23885), but maybe somebody else would like to give it a try?
+  
+  [![User avatar](https://jqmagick.imagemagick.org/discourse-server/download/file.php?avatar=26993_1402570039.png)](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=26993&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  [Marsu42](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=26993&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [75](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=26993&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2014-06-12T03:17:45-07:00**Authentication code:** 6789**Location:** Berlin**Contact:**
+  
+  [Contact Marsu42](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact Marsu42")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=117866&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=117866&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p117866)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=117866&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=117866&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=117866&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p117866 "Post") by **[Marsu42](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=26993&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2014-12-13T18:15:07-07:00
+  
+  For the record: As a simple user, I would find it great if this would be incorporated into IM.
+  
+  Sure most of the time you can run a second command line with pngquant after IM, but getting it "all in one" would be preferable because the file size reduction is unheard of with plain IM png8 output.
+  
+  [snibgo](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=16096&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [12159](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=16096&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2010-01-23T23:01:33-07:00**Authentication code:** 1151**Location:** England, UK**Contact:**
+  
+  [Contact snibgo](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact snibgo")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=117873&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=117873&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p117873)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=117873&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=117873&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=117873&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p117873 "Post") by **[snibgo](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=16096&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2014-12-13T22:02:47-07:00
+  
+  I've described the process of building image "-process" filters into IM on my page [http://im.snibgo.com/customim.htm](http://im.snibgo.com/customim.htm) . This is with Cygwin on Windows, but I expect the process is the same for any Unix-like environment.
+  
+  snibgo's IM pages: [im.snibgo.com](http://im.snibgo.com/)
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=121573&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=121573&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p121573)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=121573&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=121573&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=121573&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p121573 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-04-23T16:04:30-07:00
+  
+  Bump.
+  
+  Filters cannot do this. As far as I can tell it's not possible for a filter to emit a tRNS chunk.
+  
+  Would you consider just integrating pngquant directly?
+  
+  [canavan](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=23849&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [23](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=23849&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-02-18T10:12:03-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact canavan](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact canavan")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123555&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123555&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123555)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123555&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123555&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123555&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123555 "Post") by **[canavan](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=23849&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-06T06:57:26-07:00
+  
+  I'd think the theory was that the PNG coder would be able to write the filter output pixel values 1:1 to a correct PNG file, including emitting a tRNS chunk if necessary. I haven't tried a filter, but using convert to create a TIFF file from a pngquant-ed PNG and converting that TIFF back to PNG results in a (slightly larger) PNG file with tRNS and intact alpha channel. Apparently this also works if a TrueColor+Alpha TIFF is used as input. I would conclude that a libimagequant filter should work.
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123917&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123917&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123917)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123917&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123917&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123917&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123917 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-16T14:31:37-07:00
+  
+  Could you tell me which function call can I use to write tRNS chunk?
+  
+  The docs point to analyze.c example, but that's read-only filter, so I don't know how to write PNG chunks.
+  
+  [http://www.imagemagick.org/source/analyze.c](http://www.imagemagick.org/source/analyze.c)
+  
+  [![User avatar](https://jqmagick.imagemagick.org/discourse-server/download/file.php?avatar=9098_1546729686.jpg)](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=9098&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  [fmw42](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=9098&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [25562](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=9098&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2007-07-02T17:14:51-07:00**Authentication code:** 1152**Location:** Sunnyvale, California, USA**Contact:**
+  
+  [Contact fmw42](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact fmw42")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123919&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123919&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123919)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123919&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123919&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123919&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123919 "Post") by **[fmw42](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=9098&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-16T16:18:30-07:00
+  
+  For use in command line see [http://www.imagemagick.org/Usage/formats/#png\_write](http://www.imagemagick.org/Usage/formats/#png_write)
+  
+  _[Fred's ImageMagick Scripts](http://www.fmwconcepts.com/imagemagick/index.html)_
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123965&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123965&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123965)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123965&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123965&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123965&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123965 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-18T10:57:04-07:00
+  
+  No, I did not mean command line at all, but a C API.
+  
+  In the beginning of the tread I've been told to use the C _filter_ API to integrate pngquant, but I suspect that's been a misunderstanding, because from what I've seen in the documentation and examples **the filters API is technically incapable of providing such integration**, because it works with a higher-level pixel-based image abstraction, and I don't see any C function call in the filter API that would allow a filter to define a tRNS chunk for IM to use when writing to a PNG file, which is essential for libimagequant to do useful work.
+  
+  [![User avatar](https://jqmagick.imagemagick.org/discourse-server/download/file.php?avatar=5804_1291483094.png)](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  [glennrp](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [1147](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=5804&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2006-04-01T08:16:32-07:00**Location:** Maryland 39.26.30N 76.16.01W**Contact:**
+  
+  [Contact glennrp](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact glennrp")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123985&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123985&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123985)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123985&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123985&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123985&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123985 "Post") by **[glennrp](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-19T04:42:59-07:00
+  
+  I have been considering adding this to the PNG encoder. However, I think the filter solution would be better.
+  
+  The filter wouldn't have to know anything about the PNG tRNS chunk. ImageMagick's PNG encoder will write an indexed PNG with a tRNS chunk when it receives an image with 256 or fewer colors, including the background color. That doesn't work with the example firefox image presented at the beginning of this thread because it has 256 colors, none of which is the default background color, so there are 257 colors in total and "convert" writes a PNG32.
+  
+  If you define the background color to be one of the opaque colors present in the image, or use the "-define png:exclude-chunks=bkgd" option, then IM will write an indexed PNG with tRNS chunk.
+  
+  So a filter would work, so long as it reduced the colors to 255 instead of 256.
+  
+  [pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [8](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=24367&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2013-05-03T14:13:02-07:00**Authentication code:** 6789**Contact:**
+  
+  [Contact pornel](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact pornel")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123986&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123986&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123986)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123986&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123986&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123986&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123986 "Post") by **[pornel](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=24367&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-19T04:56:08-07:00
+  
+  > The filter wouldn't have to know anything about the PNG tRNS chunk. ImageMagick's PNG encoder will write an indexed PNG with a tRNS chunk when it receives an image with 256 or fewer colors, including the background color.
+  
+  This is the limitation I would like to avoid. As far as I understand to make ImageMagick write PNG8 I would have to remove alpha semitransparency and make the transparency as primitive as in GIF.
+  
+  But the key feature of libimagequant is ability to have up to 256 semitransparent colors, not just one transparent and 255 fully opaque.
+  
+  > So a filter would work, so long as it reduced the colors to 255 instead of 256.
+  
+  Would it be able to write a 255-color image with a shadow with [hundred levels of semi-transparency](http://i.imgur.com/1GBoJz1.png)?
+  
+  [![User avatar](https://jqmagick.imagemagick.org/discourse-server/download/file.php?avatar=5804_1291483094.png)](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  [glennrp](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [1147](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=5804&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2006-04-01T08:16:32-07:00**Location:** Maryland 39.26.30N 76.16.01W**Contact:**
+  
+  [Contact glennrp](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact glennrp")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=123987&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123987&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p123987)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123987&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=123987&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=123987&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p123987 "Post") by **[glennrp](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=5804&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2015-07-19T05:53:41-07:00
+  
+  The total RGBA combinations plus 1 for background has to be 256 or fewer, for IM to write an indexed PNG.
+  
+  The transparency only has to be binary if you call for a "PNG8" which by our definition has GIF-style transparency. There's no special name for an indexed PNG with semitransparency. It's just a "PNG".
+  
+  [FrontierDK](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=34903&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Posts:** [10](https://jqmagick.imagemagick.org/discourse-server/search.php?author_id=34903&sr=posts&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)**Joined:** 2017-05-08T11:12:41-07:00**Authentication code:** 1151**Contact:**
+  
+  [Contact FrontierDK](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340# "Contact FrontierDK")
+  
+  [Send private message](https://jqmagick.imagemagick.org/discourse-server/ucp.php?i=pm&mode=compose&action=quotepost&p=146075&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Send private message")
+  
+  ### [Re: Use pngquant (libimagequant) for quantization to palette](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=146075&sid=21c3ddb6263344aa1ca2c5f2548b9ba5\#p146075)
+  
+  - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=146075&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  - - [Quote](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=quote&p=146075&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Reply with quote")
+  
+  
+  [Post](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?p=146075&sid=21c3ddb6263344aa1ca2c5f2548b9ba5#p146075 "Post") by **[FrontierDK](https://jqmagick.imagemagick.org/discourse-server/memberlist.php?mode=viewprofile&u=34903&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)** » 2017-05-15T03:27:40-07:00
+  
+  Wow, any chance of a stand-alone libimagequant which will Work in classic ASP / VB? ![:)](https://jqmagick.imagemagick.org/discourse-server/images/smilies/icon_smile.gif)
+  
+  [Post Reply](https://jqmagick.imagemagick.org/discourse-server/posting.php?mode=reply&t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Post a reply")
+  
+  - [Print view](https://jqmagick.imagemagick.org/discourse-server/viewtopic.php?t=23340&sid=21c3ddb6263344aa1ca2c5f2548b9ba5&view=print "Print view")
+  
+  Display: All posts1 day7 days2 weeks1 month3 months6 months1 yearSort by: AuthorPost timeSubjectDirection: AscendingDescending
+  
+  * * *
+  
+  14 posts
+  • Page **1** of **1**
+  
+  [Return to “Developers”](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=2&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  Jump to
+  
+  - [ImageMagick](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=14&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Users](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=1&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Developers](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=2&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Bugs](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=3&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Consulting](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=24&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Kudos and Rants](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=19&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Announce](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=4&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [ImageMagick Program Interfaces](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=15&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   MagickWand](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=6&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Magick++](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=23&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   PerlMagick](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=7&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   IMagick](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=18&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   MagickWand for PHP](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=10&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Windows COM+ & Visual Basic](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=8&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Magick Scripting Language](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=9&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Magick.NET](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=27&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [ImageMagick Studio Web Interface](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=16&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   MagickStudio](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=5&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [Digital Image Processing](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=21&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Digital Image Processing](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=22&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  - [↳   Fred's Scripts](https://jqmagick.imagemagick.org/discourse-server/viewforum.php?f=26&sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  ### [Who is online](https://jqmagick.imagemagick.org/discourse-server/viewonline.php?sid=21c3ddb6263344aa1ca2c5f2548b9ba5)
+  
+  Users browsing this forum: No registered users and 0 guests
+  
+  Powered by [phpBB](https://www.phpbb.com/) ® Forum Software © phpBB Limited
+  
+  [Privacy](https://jqmagick.imagemagick.org/discourse-server/ucp.php?mode=privacy&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Privacy")
+  \|
+  [Terms](https://jqmagick.imagemagick.org/discourse-server/ucp.php?mode=terms&sid=21c3ddb6263344aa1ca2c5f2548b9ba5 "Terms")
+  --- End Content ---
+
+command-line utility and a library for lossy compression of PNG images
+  URL: https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/
+  pngquant is a command-line utility and a library for lossy compression of PNG images. pngquant is free and open source software.
+
+  --- Content ---
+  [Skip to content](https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/#content)
+  
+  ![Images](https://www.linuxlinks.com/wp-content/uploads/2023/10/image-compression-2914476.jpg)
+  
+  pngquant is a command-line utility and a library for lossy compression of PNG images.
+  
+  The conversion reduces file sizes significantly (often as much as 70%) and preserves full alpha transparency. Generated images are compatible with all web browsers and operating systems.
+  
+  pngquant is free and open source software.
+  
+  #### Key Features
+  
+  - High-quality palette generation using a combination of vector quantization algorithms.
+  - Advanced quantization algorithm with support for gamma correction and premultiplied alpha
+  - Unique adaptive dithering algorithm that adds less noise to images than the standard Floyd-Steinberg.
+  - Configurable quality level.
+  - Automatically finds required number of colors and can skip images which can’t be converted with the desired quality
+  - Easy to integrate with shell scripts, GUIs and server-side software. It’s based on a portable libimagequant library.
+  - Fast mode for real-time processing/large numbers of images.
+  - Multicore support (via OpenMP) and Intel SSE optimizations.
+  
+  **Website:** [**pngquant.org**](https://pngquant.org/)
+  
+  **Support:** [**GitHub Code Repository**](https://github.com/kornelski/pngquant)
+  
+  **Developer:** Jef Poskanzer and Greg Roelofs
+  
+  **License:** GNU General Public License v3.0
+  
+  pngquant is written in C and Rust. Learn C with our recommended **[free books](https://www.linuxlinks.com/excellent-free-books-learn-c/)** and **[free tutorials](https://www.linuxlinks.com/excellent-free-tutorials-learn-c/)**. Learn Rust with our recommended **[free books](https://www.linuxlinks.com/best-free-books-learn-rust/)** and **[free tutorials](https://www.linuxlinks.com/excellent-free-tutorials-learn-rust/)**.
+  
+  * * *
+  
+  #### Related Software
+  
+  | **Console Based Image Compression Tools** |
+  | --- |
+  | **[MozJPEG](https://www.linuxlinks.com/mozjpeg-mozilla-jpeg-encoder-project/)** | Mozilla JPEG Encoder Project |
+  | **[pngquant](https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/)** | Utility and a library for lossy compression of PNG images |
+  | **[SVGO](https://www.linuxlinks.com/svgo-node-js-tool-optimizing-svg-files/)** | Node.js library and command-line application for optimizing SVG files |
+  | **[Oxipng](https://www.linuxlinks.com/oxipng-multithreaded-png-optimizer/)** | Multithreaded PNG optimizer, forked from Optipng |
+  | **[libjxl](https://www.linuxlinks.com/libjxl-reference-implementation-jpeg-xl/)** | Reference implementation of JPEG XL |
+  | **[libjpeg-turbo](https://www.linuxlinks.com/libjpeg-turbo-jpeg-image-codec/)** | JPEG image codec |
+  | **[QOI](https://www.linuxlinks.com/qoi-quite-ok-image-format/)** | The Quite OK Image Format |
+  | **[YOGA](https://www.linuxlinks.com/yoga-yummy-optimizer-gorgeous-assets/)** | Yummy Optimizer for Gorgeous Assets |
+  | **[pngcrush](https://www.linuxlinks.com/pngcrush/)** | Optimizer for PNG files |
+  | **[jpegoptim](https://www.linuxlinks.com/jpegoptim-optimize-jpeg-files/)** | Optimize JPEG files. Lossless and lossy compression available |
+  | **[OptiPNG](https://www.linuxlinks.com/optipng-advanced-png-optimizer/)** | Advanced PNG optimizer |
+  | **[Guetzli](https://www.linuxlinks.com/guetzli-perceptual-jpeg-encoder/)** | Perceptual JPEG encoder with excellent compression density at high quality |
+  | **[ECT](https://www.linuxlinks.com/ect-fast-effective-file-optimizer/)** | Fast and effective C++ file optimizer |
+  | **[Crunch](https://www.linuxlinks.com/crunch-lossy-png-image-file-optimization/)** | Lossy PNG image file optimization |
+  | **[zopflipng](https://www.linuxlinks.com/zopflipng-png-optimisation-tool-zopfli/)** | PNG optimisation tool using zopfli |
+  | **[JPEG Archive](https://www.linuxlinks.com/jpeg-archive-utilities-jpegs-long-term-storage/)** | Utilities for archive JPEGs for long term storage |
+  | **[optimizt](https://www.linuxlinks.com/optimizt-cli-image-optimization-tool/)** | CLI image optimization tool |
+  | **[picopt](https://www.linuxlinks.com/picopt-multi-format-lossless-image-optimizer/)** | Multi format lossless image optimize |
+  | **[tinifier](https://www.linuxlinks.com/tinifier-image-compression-tool/)** | CLI tool for compressing images using the TinyPNG API |
+  
+  Read our verdict in the **[software roundup](https://www.linuxlinks.com/best-free-open-source-command-line-image-compression-tools/)**.
+  
+  * * *
+  
+  |     |
+  | --- |
+  | [![Best Free and Open Source Software](https://www.linuxlinks.com/wp-content/uploads/2026/01/linux-wordcloud7-small.png)](https://www.linuxlinks.com/best-free-open-source-software/) Explore our comprehensive directory of **[recommended free and open source software](https://www.linuxlinks.com/best-free-open-source-software/)**. Our carefully curated collection spans every major software category.<br>This directory is part of our ongoing series of **[informative articles](https://www.linuxlinks.com/linuxlinks-home-linux/)** for Linux enthusiasts. It features hundreds of detailed reviews, along with open source alternatives to proprietary solutions from major corporations such as Google, Microsoft, Apple, Adobe, IBM, Cisco, Oracle, and Autodesk.<br>You’ll also find interesting projects to try, hardware coverage, free programming books and tutorials, and much more.<br>Discovered a useful open source Linux program that we haven’t covered yet? Let us know by completing [**this form**](https://www.linuxlinks.com/suggest-open-source-program/). |
+  
+  Subscribe
+  
+  [Login](https://www.linuxlinks.com/wp-login.php?redirect_to=https%3A%2F%2Fwww.linuxlinks.com%2Fpngquant-command-line-utility-library-lossy-compression-png-images%2F)
+  
+  Please read our **[Comment Policy](https://www.linuxlinks.com/frequently-asked-questions-posting-comments/)** before commenting.
+  
+  
+  Notify of
+  
+  new follow-up commentsnew replies to my comments
+  
+  ![guest](https://secure.gravatar.com/avatar/ad05b1536f9f8c3ccbbe6ed030a3213648aeff890a5b127ae6b5aed318f1ccd6?s=56&d=identicon&r=g)
+  
+  Label
+  
+  {}\[+\]
+  
+  Name\*
+  
+  Email\*
+  
+  Checking your Browser…
+  
+  Verifying...
+  
+  Stuck? [Troubleshoot](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/f/av0/rch/80gvl/0x4AAAAAAD48_URz54WIM45I/auto/fbE/new/normal?lang=auto#refresh)
+  
+  Success!
+  
+  Verification failed
+  
+  [Troubleshoot](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/f/av0/rch/80gvl/0x4AAAAAAD48_URz54WIM45I/auto/fbE/new/normal?lang=auto#refresh)
+  
+  Verification expired
+  
+  [Refresh](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/f/av0/rch/80gvl/0x4AAAAAAD48_URz54WIM45I/auto/fbE/new/normal?lang=auto#refresh)
+  
+  Verification expired
+  
+  [Refresh](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/f/av0/rch/80gvl/0x4AAAAAAD48_URz54WIM45I/auto/fbE/new/normal?lang=auto#refresh)
+  
+  [Troubleshoot](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/g/turnstile/f/av0/rch/80gvl/0x4AAAAAAD48_URz54WIM45I/auto/fbE/new/normal?lang=auto#refresh)
+  
+  [Cloudflare, opens in a new tab](https://www.cloudflare.com/products/turnstile/?utm_source=turnstile&utm_campaign=widget)
+  
+  [Privacy](https://www.cloudflare.com/privacypolicy/) • [Help](https://challenges.cloudflare.com/cdn-cgi/challenge-platform/help)
+  
+  ![guest](https://secure.gravatar.com/avatar/2fd1a0ad944a1c4024ee7f3dc7a57e4766fbcf3435986dc75af1cf396d306031?s=56&d=identicon&r=g)
+  
+  Label
+  
+  {}\[+\]
+  
+  Name\*
+  
+  Email\*
+  
+  0 Comments
+  
+  Oldest
+  
+  NewestMost Voted
+  
+  wpDiscuz
+  
+  0
+  
+  0
+  
+  Would love your thoughts, please comment.[x](https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/#)
+  
+  ()
+  
+  [x](https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/#)
+  
+  \| [Reply](https://www.linuxlinks.com/pngquant-command-line-utility-library-lossy-compression-png-images/#)
+  
+  Insert
+  --- End Content ---
+
+TinyPNG: Lossy compression for PNG that preserves full transparency.
+  URL: https://news.ycombinator.com/item?id=4167964
+  You can generate the same image format with ImageMagick, Fireworks, pngnq and pngquant (the last one seems to be powering the site). The ...
+
+  --- Content ---
+  |     |     |     |
+  | --- | --- | --- |
+  | |     |     |     |
+  | --- | --- | --- |
+  | [![](https://news.ycombinator.com/y18.svg)](https://news.ycombinator.com/) | **[Hacker News](https://news.ycombinator.com/news)** [new](https://news.ycombinator.com/newest) \| [past](https://news.ycombinator.com/front) \| [comments](https://news.ycombinator.com/newcomments) \| [ask](https://news.ycombinator.com/ask) \| [show](https://news.ycombinator.com/show) \| [jobs](https://news.ycombinator.com/jobs) \| [submit](https://news.ycombinator.com/submit) | [login](https://news.ycombinator.com/login?goto=item%3Fid%3D4167964) | |
+  
+  | |     |     |     |
+  | --- | --- | --- |
+  |  |  | [TinyPNG: Lossy compression for PNG that preserves full transparency.](http://tinypng.org/) ( [tinypng.org](https://news.ycombinator.com/from?site=tinypng.org)) |
+  |  | 184 points by [felipellrocha](https://news.ycombinator.com/user?id=felipellrocha) [on June 27, 2012](https://news.ycombinator.com/item?id=4167964) \| [hide](https://news.ycombinator.com/hide?id=4167964&goto=item%3Fid%3D4167964) \| [past](https://hn.algolia.com/?query=TinyPNG%3A%20Lossy%20compression%20for%20PNG%20that%20preserves%20full%20transparency.&type=story&dateRange=all&sort=byDate&storyText=false&prefix&page=0) \| [favorite](https://news.ycombinator.com/fave?id=4167964&auth=7f6eec2e3c3c52865d544716786284c8b6cf00c2) \| [83 comments](https://news.ycombinator.com/item?id=4167964) |
+  |  |  |
+  
+  |     |     |     |
+  | --- | --- | --- |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [netshade](https://news.ycombinator.com/user?id=netshade) [on June 27, 2012](https://news.ycombinator.com/item?id=4168317) \| [next](https://news.ycombinator.com/item?id=4167964#4168419)\[–\]<br>They're using a quantizer. Likely [http://pngnq.sourceforge.net/](http://pngnq.sourceforge.net/) .<br>To compare yourself:<br>```<br>  wget http://tinypng.org/images/example-orig-c549c73a.png<br>  wget http://tinypng.org/images/example-shrunk-ec364794.png<br>  pngnq example-orig-c549c73a.png <br>  cmp -b example-orig-c549c73a-nq8.png example-shrunk-ec364794.png<br>```<br>I get one byte of difference between what pngnq produces and their example shrunk version.<br>BTW, I use pngnq all the time in instances where losing some information is okay. It's a great tool. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [georgemcbay](https://news.ycombinator.com/user?id=georgemcbay) [on June 27, 2012](https://news.ycombinator.com/item?id=4168419) \| [prev](https://news.ycombinator.com/item?id=4167964#4168317) \| [next](https://news.ycombinator.com/item?id=4167964#4168451)\[–\]<br>I don't mean this as a dig at the developers of this particular site because my annoyance is more of a cumulative thing as opposed to being about this website in general, but IMO this is yet another website that does one simple thing that should be a library (or at the very least a documented web api) and not a website.<br>Websites of 2012, I am disappoint. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [crazygringo](https://news.ycombinator.com/user?id=crazygringo) [on June 27, 2012](https://news.ycombinator.com/item?id=4168578) \| [parent](https://news.ycombinator.com/item?id=4167964#4168419) \| [next](https://news.ycombinator.com/item?id=4167964#4168794)\[–\]<br>What? The designers who will be using this to convert PNG's won't have the slightest idea how to access an API. I, as a programmer, don't want to write code to do this either. I think creating a site for this is _awesome_.<br>It would be cool if they created an API as well, and a library (but for what language? so many compatibility issues...), but to say this should "not be a website" is entirely backwards. A website is the most user-friendly and accessible platform possible, and makes perfect sense to be the first step. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [jlarocco](https://news.ycombinator.com/user?id=jlarocco) [on June 27, 2012](https://news.ycombinator.com/item?id=4168684) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168578) \| [next](https://news.ycombinator.com/item?id=4167964#4168624)\[–\]<br>I have to agree with the OP here. Making this a webpage is silly.<br>If it were a library the program that created the PNG could have saved it in this compressed form in the first place.<br>Choosing the language isn't an issue, either. The obvious choice is C because that's what regular libpng is written in. And every language in existence provides a way to interface with C. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [georgemcbay](https://news.ycombinator.com/user?id=georgemcbay) [on June 27, 2012](https://news.ycombinator.com/item?id=4168624) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168578) \| [prev](https://news.ycombinator.com/item?id=4167964#4168684) \| [next](https://news.ycombinator.com/item?id=4167964#4169295)\[–\]<br>"What? The designers who will be using this to convert PNG's won't have the slightest idea how to access an API."<br>For designers it should be a Photoshop plugin (built on the theoretical library) or just a desktop app that can bulk convert entire directories.<br>While dealing with 20 images at a time is certainly nicer than one at a time, a drag & drop website UI like this one is an absolute workflow killer on the design side. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [crazygringo](https://news.ycombinator.com/user?id=crazygringo) [on June 27, 2012](https://news.ycombinator.com/item?id=4168652) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168624) \| [next](https://news.ycombinator.com/item?id=4167964#4169295)\[–\]<br>Sure, a Photoshop plugin would be great. And a desktop app. And a GIMP plugin. And a Finder extension. And lots of other things too.<br>My point is, a website interface the single most accessible way so that 100% of people can use it, regardless of platform or programming expertise.<br>It is the obvious first choice. That said, of course I hope all the other options come along soon... | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [shawnz](https://news.ycombinator.com/user?id=shawnz) [on June 27, 2012](https://news.ycombinator.com/item?id=4169227) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168652) \| [next](https://news.ycombinator.com/item?id=4167964#4169113)\[–\]<br>The problem is that websites are the most accessible way to deliver an interface for _humans_. But nobody else can do anything with the tech, and you're limited to the one workflow that the creator had thought of.<br>If this were a library or a command line app like pngcrush, web services could be spawned from it in days, easily. Or desktop apps. Or editor plugins. But in the current format, it's inextensible.<br>(disclaimer: this isn't always true, but it's true in this case) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ars](https://news.ycombinator.com/user?id=ars) [on June 27, 2012](https://news.ycombinator.com/item?id=4169113) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168652) \| [prev](https://news.ycombinator.com/item?id=4167964#4169227) \| [next](https://news.ycombinator.com/item?id=4167964#4169295)\[–\]<br>GIMP already has an interface to reduce color depth, but it doesn't support transparency. (Maybe 2.8 does, haven't tried it yet.)<br>So this should not be a plugin for gimp, but rather a bug fix.<br>It would also be nice if gimp could open images with indexed transparency. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [shawnz](https://news.ycombinator.com/user?id=shawnz) [on June 27, 2012](https://news.ycombinator.com/item?id=4169252) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4169113) \| [next](https://news.ycombinator.com/item?id=4167964#4169295)\[–\]<br>You're right, proper transparency support is step 1 -- but that isn't to say that GIMP couldn't have some sort of automatic lossy compression tool (akin to this) on _top_ of that tech.<br>EDIT: I suppose this software is equivalent to gimp's "Automatically select palette" option when converting images to indexed. Perhaps that option could be replaced with a list of algorithms to choose from, like how the Size dialog lets you choose your own scaling algorithms. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ars](https://news.ycombinator.com/user?id=ars) [on June 27, 2012](https://news.ycombinator.com/item?id=4169584) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4169252) \| [next](https://news.ycombinator.com/item?id=4167964#4169295)\[–\]<br>Yes, exactly. This tool is simply because "Automatically select palette" doesn't support transparency. If it did there would be no need for this.<br>I'm not sure you really need multiple algorithms, the algorithm itself isn't anything special as far as I know - it just supports transparency that's all.<br>You can get somewhat similar results by selecting all the transparent and partially transparent parts and saving the selection. Then flatten the image (i.e. mix the transparency into the background color), reduce the color depth, then use the color to alpha option only on the selection (not the whole image) to subtract the color and bring back the transparency.<br>Then count how many colors you have, if you have too many, undo everything, and choose a lower number for color depth and try again. It helps to choose a color that does not otherwise exist in the image for the background mixing color. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [njharman](https://news.ycombinator.com/user?id=njharman) [on June 27, 2012](https://news.ycombinator.com/item?id=4169295) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168578) \| [prev](https://news.ycombinator.com/item?id=4167964#4168624) \| [next](https://news.ycombinator.com/item?id=4167964#4168794)\[–\]<br>\> A website is the most user-friendly and accessible platform possible<br>A website requires a browser, a human, and bunch of clicking around. Every single time you want to do this.<br>API / library requires script to be written and added to production pipeline. Once. Then runs without human intervention.<br>The most human friendly interface is the one that saves humans from doing boring, tedious, automatable tasks. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [pornel](https://news.ycombinator.com/user?id=pornel) [on June 27, 2012](https://news.ycombinator.com/item?id=4168794) \| [parent](https://news.ycombinator.com/item?id=4167964#4168419) \| [prev](https://news.ycombinator.com/item?id=4167964#4168578) \| [next](https://news.ycombinator.com/item?id=4167964#4168957)\[–\]<br>I believe this website uses pngquant to perform the optimization. You can get the tool from [http://pngquant.org](http://pngquant.org/) (it's open-source and pretty easy to use as a library too). | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [mrjd](https://news.ycombinator.com/user?id=mrjd) [on June 27, 2012](https://news.ycombinator.com/item?id=4169496) \| [root](https://news.ycombinator.com/item?id=4167964#4168419) \| [parent](https://news.ycombinator.com/item?id=4167964#4168794) \| [next](https://news.ycombinator.com/item?id=4167964#4168957)\[–\]<br>You're right, it's listed on pngquant's site too as one of the GUI's. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [nostromo](https://news.ycombinator.com/user?id=nostromo) [on June 27, 2012](https://news.ycombinator.com/item?id=4168957) \| [parent](https://news.ycombinator.com/item?id=4167964#4168419) \| [prev](https://news.ycombinator.com/item?id=4167964#4168794) \| [next](https://news.ycombinator.com/item?id=4167964#4169544)\[–\]<br>"Write programs that do one thing and do it well."<br>also: [http://en.wikipedia.org/wiki/Worse\_is\_better](http://en.wikipedia.org/wiki/Worse_is_better) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [kamakazizuru](https://news.ycombinator.com/user?id=kamakazizuru) [on June 27, 2012](https://news.ycombinator.com/item?id=4169544) \| [parent](https://news.ycombinator.com/item?id=4167964#4168419) \| [prev](https://news.ycombinator.com/item?id=4167964#4168957) \| [next](https://news.ycombinator.com/item?id=4167964#4168451)\[–\]<br>I guess they'll take a freemium approach with time - offer the API and so on as paid models that people can pay for. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [molf](https://news.ycombinator.com/user?id=molf) [on June 27, 2012](https://news.ycombinator.com/item?id=4168451) \| [prev](https://news.ycombinator.com/item?id=4167964#4168419) \| [next](https://news.ycombinator.com/item?id=4167964#4168269)\[–\]<br>Thanks for all the feedback, everyone! We're still working on making TinyPNG easier to use and removing some of the kinks. Keep the comments coming!<br>We created this service because we (our web agency) were building a couple of sites that used very large transparent images. Unfortunately the file sizes were also massive, so we went looking for compression mechanisms beyond traditional lossless optimisation tools, which simply did not reduce our files enough. We built TinyPNG around a couple of existing open source quantising and compression tools.<br>Initially it was an internal tool, but we were extremely surprised by the consistent good quality of the results. So we decided to share it as an online service so that it is as easy as possible for everyone to reduce file sizes. An API will be coming soon!<br>Is it always a good idea to use lossy compression? No, certainly not. There are some edge cases that perform poorly. But we think the results are impressive. Use your own judgment! :-)<br>We actually went looking for PNG files on very popular sites (Facebook, Google, Github, Duckduckgo, many others) and almost all of them could benefit from TinyPNG's file size reduction without noticeable quality loss. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [willvarfar](https://news.ycombinator.com/user?id=willvarfar) [on June 27, 2012](https://news.ycombinator.com/item?id=4169016) \| [parent](https://news.ycombinator.com/item?id=4167964#4168451) \| [next](https://news.ycombinator.com/item?id=4167964#4168269)\[–\]<br>_which_ existing open-source tools? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [molf](https://news.ycombinator.com/user?id=molf) [on June 27, 2012](https://news.ycombinator.com/item?id=4169050) \| [root](https://news.ycombinator.com/item?id=4167964#4168451) \| [parent](https://news.ycombinator.com/item?id=4167964#4169016) \| [next](https://news.ycombinator.com/item?id=4167964#4168269)\[–\]<br>Mostly pngquant (the new version), optipng and advpng. We are still tuning parameters and swapping in and out tools based on our benchmarks and testing suite. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [simonsarris](https://news.ycombinator.com/user?id=simonsarris) [on June 27, 2012](https://news.ycombinator.com/item?id=4168269) \| [prev](https://news.ycombinator.com/item?id=4167964#4168451) \| [next](https://news.ycombinator.com/item?id=4167964#4168259)\[–\]<br>Wow it took my png from 659 bytes to 681 and lets me download the 681 byte one. :(<br>So I took a PNG from wikipedia:<br>221.0kb (its actually 215 KB or a little more than 220,000 bytes) to a claimed 47.8 KB (really 46.7 KB). Nice!<br>Running PNGGauntlet, a lossless compression app, with the same file compressed nothing. Wise wikipedians must have already done that.<br>But the results from tinypng look _awful_. Here you can flip between the original and the compressed:<br>[http://upload.wikimedia.org/wikipedia/commons/4/47/PNG\_trans...](http://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png)<br>[http://i.imgur.com/QOLo3.png](http://i.imgur.com/QOLo3.png) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [bosch](https://news.ycombinator.com/user?id=bosch) [on June 27, 2012](https://news.ycombinator.com/item?id=4168400) \| [parent](https://news.ycombinator.com/item?id=4167964#4168269) \| [next](https://news.ycombinator.com/item?id=4167964#4169141)\[–\]<br>I wouldn't say they look awful, there's a difference in the background part of the image but the main focus has little change.<br>It's a trade-off, but I would imagine that if there's thousands of files it could be a significant savings on bandwidth, and you could always keep the original for download but not display puroses. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [mceachen](https://news.ycombinator.com/user?id=mceachen) [on June 28, 2012](https://news.ycombinator.com/item?id=4170219) \| [root](https://news.ycombinator.com/item?id=4167964#4168269) \| [parent](https://news.ycombinator.com/item?id=4167964#4168400) \| [next](https://news.ycombinator.com/item?id=4167964#4169141)\[–\]<br>There's very clear posterization in the yellow die and in the green die's highlights.<br>That shouldn't be surprising -- high color depth images need more than 256 colors to represent their image with fidelity.<br>See more: [http://en.wikipedia.org/wiki/Posterization](http://en.wikipedia.org/wiki/Posterization) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ars](https://news.ycombinator.com/user?id=ars) [on June 27, 2012](https://news.ycombinator.com/item?id=4169141) \| [parent](https://news.ycombinator.com/item?id=4167964#4168269) \| [prev](https://news.ycombinator.com/item?id=4167964#4168400) \| [next](https://news.ycombinator.com/item?id=4167964#4168697)\[–\]<br>Here are the results of pngnq which does exactly the same thing as this tool. It created a file size of 46K, (which I was then able to reduce to 41K with pngout followed by advpng).<br>[http://i.imgur.com/VPc2k.png](http://i.imgur.com/VPc2k.png)<br>[http://pngnq.sourceforge.net/](http://pngnq.sourceforge.net/)<br>256 colors may simply not be enough for this image.<br>(Incidentally I was able to slightly reduce your image to 46K with pngout.) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [projct](https://news.ycombinator.com/user?id=projct) [on June 27, 2012](https://news.ycombinator.com/item?id=4168697) \| [parent](https://news.ycombinator.com/item?id=4167964#4168269) \| [prev](https://news.ycombinator.com/item?id=4167964#4169141) \| [next](https://news.ycombinator.com/item?id=4167964#4168471)\[–\]<br>Riot\[1\] (windows) does as good or better than pnggauntlet and lets you preview things. supports the same backends I think (pngout, optipng, advpng, etc) and some extra dithering options... perhaps worth a look, I switched from pnggauntlet. :)<br>\[1\] [http://luci.criosweb.ro/riot/](http://luci.criosweb.ro/riot/) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [fluxon](https://news.ycombinator.com/user?id=fluxon) [on June 27, 2012](https://news.ycombinator.com/item?id=4168471) \| [parent](https://news.ycombinator.com/item?id=4167964#4168269) \| [prev](https://news.ycombinator.com/item?id=4167964#4168697) \| [next](https://news.ycombinator.com/item?id=4167964#4168259)\[–\]<br>There are \_slight\_ artifacts on the defocused green die. At typical Wikipedia in-article display sizes (400x300, in this case), this is acceptable. Viewing in Win Firefox 13.01, Windows gamma. I'd use tinypng on large files before downscaling for web use. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ars](https://news.ycombinator.com/user?id=ars) [on June 27, 2012](https://news.ycombinator.com/item?id=4169142) \| [root](https://news.ycombinator.com/item?id=4167964#4168269) \| [parent](https://news.ycombinator.com/item?id=4167964#4168471) \| [next](https://news.ycombinator.com/item?id=4167964#4168259)\[–\]<br>Use it after downscaling not before.<br>If you have a good downscaling tool it will create a larger number of intermediate colors when you downscale and you'll actually end up with a larger image! | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [fluxon](https://news.ycombinator.com/user?id=fluxon) [on June 27, 2012](https://news.ycombinator.com/item?id=4169567) \| [root](https://news.ycombinator.com/item?id=4167964#4168269) \| [parent](https://news.ycombinator.com/item?id=4167964#4169142) \| [next](https://news.ycombinator.com/item?id=4167964#4168259)\[–\]<br>Good point. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [raspie](https://news.ycombinator.com/user?id=raspie) [on June 27, 2012](https://news.ycombinator.com/item?id=4168259) \| [prev](https://news.ycombinator.com/item?id=4167964#4168269) \| [next](https://news.ycombinator.com/item?id=4167964#4168526)\[–\]<br>\> Internet Explorer 6 normally ignores PNG transparency and displays a solid background colour.<br>\> With TinyPNG the background becomes transparent again. No workarounds!<br>Um, does anyone know how that works? Does IE6 natively support some kind of png transparency?<br>EDIT: ah, like that: [http://calendar.perfplanet.com/2010/png-that-works/#8bit+alp...](http://calendar.perfplanet.com/2010/png-that-works/#8bit+alpha) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [crazygringo](https://news.ycombinator.com/user?id=crazygringo) [on June 27, 2012](https://news.ycombinator.com/item?id=4168638) \| [parent](https://news.ycombinator.com/item?id=4167964#4168259) \| [next](https://news.ycombinator.com/item?id=4167964#4168397)\[–\]<br>Woah! How is it 2012, and only _now_ I discover that there exist PNG files where transparency works in IE6 ???<br>What the hell?<br>I mean, this would have actually been _really_ useful for me... like, five years ago. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [amishforkfight](https://news.ycombinator.com/user?id=amishforkfight) [on June 27, 2012](https://news.ycombinator.com/item?id=4168958) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168638) \| [next](https://news.ycombinator.com/item?id=4167964#4168397)\[–\]<br>PNG8 (which IE6 supports) has had support for alpha transparency for a long time, but only Fireworks was able to create those files. I'm guessing that these guys are making PNG8s? I haven't tested the site myself. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ars](https://news.ycombinator.com/user?id=ars) [on June 27, 2012](https://news.ycombinator.com/item?id=4169234) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168958) \| [next](https://news.ycombinator.com/item?id=4167964#4168397)\[–\]<br>Fireworks is not the only program that can create those files. I've never even heard of fireworks and I create indexed pngs with transparency all the time. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [SquareWheel](https://news.ycombinator.com/user?id=SquareWheel) [on June 28, 2012](https://news.ycombinator.com/item?id=4170065) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4169234) \| [next](https://news.ycombinator.com/item?id=4167964#4168397)\[–\]<br>Fireworks is a Macromedia (well, now Adobe) image editor with a focus on graphic creation and the web. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [zinssmeister](https://news.ycombinator.com/user?id=zinssmeister) [on June 27, 2012](https://news.ycombinator.com/item?id=4168397) \| [parent](https://news.ycombinator.com/item?id=4167964#4168259) \| [prev](https://news.ycombinator.com/item?id=4167964#4168638) \| [next](https://news.ycombinator.com/item?id=4167964#4168526)\[–\]<br>who the heck still cares about what IE6 does?! | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [\_dp9d](https://news.ycombinator.com/user?id=_dp9d) [on June 27, 2012](https://news.ycombinator.com/item?id=4168523) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168397) \| [next](https://news.ycombinator.com/item?id=4167964#4168966)\[–\]<br>Anyone developing for health-care, government, etc.<br>Heck, I'm sitting here on XP, developing _specifically_ for IE6 and nothing else. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [noinput](https://news.ycombinator.com/user?id=noinput) [on June 27, 2012](https://news.ycombinator.com/item?id=4169131) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168523) \| [next](https://news.ycombinator.com/item?id=4167964#4168997)\[–\]<br>And I hope your rate is doubled, at least. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [\_dp9d](https://news.ycombinator.com/user?id=_dp9d) [on June 28, 2012](https://news.ycombinator.com/item?id=4172288) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4169131) \| [next](https://news.ycombinator.com/item?id=4167964#4168997)\[–\]<br>Although IE6 has it's share of problems, it's actually kind of simple developing for _one single_ version of one browser. Once you get used to the quirks, they are constants.<br>(Note: I'm not saying I like it, just that it's become "normal") | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [zinssmeister](https://news.ycombinator.com/user?id=zinssmeister) [on June 27, 2012](https://news.ycombinator.com/item?id=4168997) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168523) \| [prev](https://news.ycombinator.com/item?id=4167964#4169131) \| [next](https://news.ycombinator.com/item?id=4167964#4168966)\[–\]<br>I hope you hate your job a bit :) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [mixmastamyk](https://news.ycombinator.com/user?id=mixmastamyk) [on June 27, 2012](https://news.ycombinator.com/item?id=4168966) \| [root](https://news.ycombinator.com/item?id=4167964#4168259) \| [parent](https://news.ycombinator.com/item?id=4167964#4168397) \| [prev](https://news.ycombinator.com/item?id=4167964#4168523) \| [next](https://news.ycombinator.com/item?id=4167964#4168526)\[–\]<br>I think he's just curious about how IE6 was tricked into supporting it. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [shocks](https://news.ycombinator.com/user?id=shocks) [on June 27, 2012](https://news.ycombinator.com/item?id=4168526) \| [prev](https://news.ycombinator.com/item?id=4167964#4168259) \| [next](https://news.ycombinator.com/item?id=4167964#4168100)\[–\]<br>I feel like the supported browser icons should be in colour. To me, back and white represents 'not supported'. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [TazeTSchnitzel](https://news.ycombinator.com/user?id=TazeTSchnitzel) [on June 27, 2012](https://news.ycombinator.com/item?id=4168901) \| [parent](https://news.ycombinator.com/item?id=4167964#4168526) \| [next](https://news.ycombinator.com/item?id=4167964#4168100)\[–\]<br>Me too, it's very confusing. It doesn't even saturate-on-hover. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [bentruyman](https://news.ycombinator.com/user?id=bentruyman) [on June 27, 2012](https://news.ycombinator.com/item?id=4168100) \| [prev](https://news.ycombinator.com/item?id=4167964#4168526) \| [next](https://news.ycombinator.com/item?id=4167964#4168796)\[–\]<br>I'd be curious to know if they have plans to release the source for this. It'd be much more useful to use this in a build step, rather than drag-and-drop into a browser window. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [bingbing](https://news.ycombinator.com/user?id=bingbing) [on June 27, 2012](https://news.ycombinator.com/item?id=4168131) \| [parent](https://news.ycombinator.com/item?id=4167964#4168100) \| [next](https://news.ycombinator.com/item?id=4167964#4168177)\[–\]<br>I think that [http://pngquant.org/](http://pngquant.org/) does the same technique.<br>Also see [http://pngnq.sourceforge.net/index.html](http://pngnq.sourceforge.net/index.html)<br>There are several other image optimization tools incorporated into a OS X tool [http://imageoptim.com/](http://imageoptim.com/) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [huhtenberg](https://news.ycombinator.com/user?id=huhtenberg) [on June 27, 2012](https://news.ycombinator.com/item?id=4168177) \| [parent](https://news.ycombinator.com/item?id=4167964#4168100) \| [prev](https://news.ycombinator.com/item?id=4167964#4168131) \| [next](https://news.ycombinator.com/item?id=4167964#4168114)\[–\]<br>You don't understand.<br>It must be a start-up with a freemium model. Soon they will reveal a monthly subscription option with a professional bulk uploader in Flash or even a desktop client. Just wait and see. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [simonbrown](https://news.ycombinator.com/user?id=simonbrown) [on June 27, 2012](https://news.ycombinator.com/item?id=4169237) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4168177) \| [next](https://news.ycombinator.com/item?id=4167964#4168114)\[–\]<br>What would be wrong with that? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [huhtenberg](https://news.ycombinator.com/user?id=huhtenberg) [on June 27, 2012](https://news.ycombinator.com/item?id=4169330) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4169237) \| [next](https://news.ycombinator.com/item?id=4167964#4168114)\[–\]<br>It's a pipe dream, but otherwise it's fine. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [trebor](https://news.ycombinator.com/user?id=trebor) [on June 27, 2012](https://news.ycombinator.com/item?id=4168114) \| [parent](https://news.ycombinator.com/item?id=4167964#4168100) \| [prev](https://news.ycombinator.com/item?id=4167964#4168177) \| [next](https://news.ycombinator.com/item?id=4167964#4168796)\[–\]<br>Ditto. I'd like to see some side-by-side comparisons with PNGOUT, PNGCrush, OptiPNG, and AdvPNG. I use ImageOptim on my Mac to automate my PNG optimization—and it can get some impressive gains. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [kizza](https://news.ycombinator.com/user?id=kizza) [on June 28, 2012](https://news.ycombinator.com/item?id=4170665) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4168114) \| [next](https://news.ycombinator.com/item?id=4167964#4168692)\[–\]<br>On the Mac I use ImageAlpha to reduce the colours to 256 (it has a preview window so you can see if it's OK), then when saving the file I choose the option to send it to ImageOptim.<br>On Linux you can get the same by using pngquant, then using trimage. AFAIK there's no GUI frontend for pngquant so I guess how many colours would be ok and check before running trimage.<br>The reason why I use 2 tools is that ImageAlpha/pngquant is lossy and ImageOptim/trimage is lossless. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [molf](https://news.ycombinator.com/user?id=molf) [on June 27, 2012](https://news.ycombinator.com/item?id=4168692) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4168114) \| [prev](https://news.ycombinator.com/item?id=4167964#4170665) \| [next](https://news.ycombinator.com/item?id=4167964#4168291)\[–\]<br>The tools you mention use lossless compression. For 24-bit PNG files that means they probably won't come close the kind of lossy compression used by TinyPNG. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [trebor](https://news.ycombinator.com/user?id=trebor) [on June 27, 2012](https://news.ycombinator.com/item?id=4169487) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4168692) \| [next](https://news.ycombinator.com/item?id=4167964#4168291)\[–\]<br>The comparison will be subjective. One will retain full detail (24-bit color) and the other will not. The "better" will be subjective, as I said.<br>I wish Photoshop gave the option to save an 8-bit PNG with a FULL alpha channel—that's what this seems to do. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [eli](https://news.ycombinator.com/user?id=eli) [on June 27, 2012](https://news.ycombinator.com/item?id=4168291) \| [root](https://news.ycombinator.com/item?id=4167964#4168100) \| [parent](https://news.ycombinator.com/item?id=4167964#4168114) \| [prev](https://news.ycombinator.com/item?id=4167964#4168692) \| [next](https://news.ycombinator.com/item?id=4167964#4168796)\[–\]<br>I think ImageOptim uses the pngcrush library.<br>This website looks neat, but it seems like a CLI that can become part of my automated workflow would generally be more useful. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [cs702](https://news.ycombinator.com/user?id=cs702) [on June 27, 2012](https://news.ycombinator.com/item?id=4168796) \| [prev](https://news.ycombinator.com/item?id=4167964#4168100) \| [next](https://news.ycombinator.com/item?id=4167964#4168945)\[–\]<br>Can't you achieve the same results with ImageMagick? For example, \`mogrify -format png8 \*.png\` converts all png images in the current directory to indexed versions.<br>Moreover, ImageMagick itself recommends a variety of more advanced lossless and lossy png compression utilites: [http://www.imagemagick.org/Usage/formats/#png\_non-im](http://www.imagemagick.org/Usage/formats/#png_non-im)<br>Then I opened the original panda PNG with GIMP, clicked on Image -> Mode -> Indexed -> Optimized palete -> 255 colors, and obtained an even smaller file size.<br>What's so special about this? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [pornel](https://news.ycombinator.com/user?id=pornel) [on June 27, 2012](https://news.ycombinator.com/item?id=4168830) \| [parent](https://news.ycombinator.com/item?id=4167964#4168796) \| [next](https://news.ycombinator.com/item?id=4167964#4168945)\[–\]<br>You can generate the same image format with ImageMagick, Fireworks, pngnq and pngquant (the last one seems to be powering the site).<br>The difference is in quality of quantization. The poorer the algorithm, the more banding artifacts or dithering noise you'll get.<br>Usually less optimal quantization also gives worse quality/filesize ratio (since palette entries are "spent" on less noticeable areas of the image). | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [cs702](https://news.ycombinator.com/user?id=cs702) [on June 27, 2012](https://news.ycombinator.com/item?id=4168859) \| [root](https://news.ycombinator.com/item?id=4167964#4168796) \| [parent](https://news.ycombinator.com/item?id=4167964#4168830) \| [next](https://news.ycombinator.com/item?id=4167964#4168945)\[–\]<br>_You can generate the same image format with ImageMagick, Fireworks, pngnq and pngquant (the last one seems to be powering the site)_ <br>Exactly: I don't see what's _special_ about tinyPNG. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [mixmastamyk](https://news.ycombinator.com/user?id=mixmastamyk) [on June 27, 2012](https://news.ycombinator.com/item?id=4168989) \| [root](https://news.ycombinator.com/item?id=4167964#4168796) \| [parent](https://news.ycombinator.com/item?id=4167964#4168859) \| [next](https://news.ycombinator.com/item?id=4167964#4168945)\[–\]<br>Looks like it just makes the process accessible to the layman. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [cs702](https://news.ycombinator.com/user?id=cs702) [on June 27, 2012](https://news.ycombinator.com/item?id=4169014) \| [root](https://news.ycombinator.com/item?id=4167964#4168796) \| [parent](https://news.ycombinator.com/item?id=4167964#4168989) \| [next](https://news.ycombinator.com/item?id=4167964#4168945)\[–\]<br>Most laypeople don't even know what a PNG is... | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [j\_s](https://news.ycombinator.com/user?id=j_s) [on June 27, 2012](https://news.ycombinator.com/item?id=4168945) \| [prev](https://news.ycombinator.com/item?id=4167964#4168796) \| [next](https://news.ycombinator.com/item?id=4167964#4170060)\[–\]<br>nQuant is a similar (C#, Apache 2.0 licensed) re-compressor; it was created by Matt Wrock as an adjustment of Xiaolin Wu’s algorithm to work with the alpha channel.<br>[http://nquant.codeplex.com/](http://nquant.codeplex.com/)<br>Matt gets into the guts of how this process works here: [http://www.mattwrock.com/post/2011/09/05/Convert-32-bit-PNGs...](http://www.mattwrock.com/post/2011/09/05/Convert-32-bit-PNGs-to-high-quality-8-bit-PNGs-with-C.aspx) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [jscheel](https://news.ycombinator.com/user?id=jscheel) [on June 28, 2012](https://news.ycombinator.com/item?id=4170060) \| [prev](https://news.ycombinator.com/item?id=4167964#4168945) \| [next](https://news.ycombinator.com/item?id=4167964#4169082)\[–\]<br>I typically just apply a posterize adjustment layer in photoshop and still save out to 24-bit. More often than not I can get pretty good compression, and I have the ability to mask out different areas of the posterization to achieve varying levels of compression interactively. Kudos for making this website though, seems like a great way to quickly compress images without having to think about it too much. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [pygorex](https://news.ycombinator.com/user?id=pygorex) [on June 27, 2012](https://news.ycombinator.com/item?id=4169082) \| [prev](https://news.ycombinator.com/item?id=4167964#4170060) \| [next](https://news.ycombinator.com/item?id=4167964#4169913)\[–\]<br>Wait! I know I've seen this before:<br>[http://www.8bitalpha.com/](http://www.8bitalpha.com/) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [pornel](https://news.ycombinator.com/user?id=pornel) [on June 27, 2012](https://news.ycombinator.com/item?id=4169416) \| [parent](https://news.ycombinator.com/item?id=4167964#4169082) \| [next](https://news.ycombinator.com/item?id=4167964#4169913)\[–\]<br>Unfortunately 8bitalpha.com uses GD library which has very outdated, crappy quantizer:<br>[http://i.imgur.com/7bq7X.png](http://i.imgur.com/7bq7X.png) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [hyung](https://news.ycombinator.com/user?id=hyung) [on June 28, 2012](https://news.ycombinator.com/item?id=4169913) \| [prev](https://news.ycombinator.com/item?id=4167964#4169082) \| [next](https://news.ycombinator.com/item?id=4167964#4169553)\[–\]<br>If you're on a Mac, ImageAlpha provides a good GUI that lets you preview different quality settings:<br>[http://pngmini.com/](http://pngmini.com/)<br>Also, ImageOptim provides a GUI that does lossless PNG compression:<br>[http://imageoptim.com/](http://imageoptim.com/) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [AshleysBrain](https://news.ycombinator.com/user?id=AshleysBrain) [on June 27, 2012](https://news.ycombinator.com/item?id=4169553) \| [prev](https://news.ycombinator.com/item?id=4167964#4169913) \| [next](https://news.ycombinator.com/item?id=4167964#4168446)\[–\]<br>How does it compare to PNGNQ?<br>[http://pngnq.sourceforge.net](http://pngnq.sourceforge.net/) [http://pngnq.sourceforge.net/pngnqsamples.html](http://pngnq.sourceforge.net/pngnqsamples.html) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [prote](https://news.ycombinator.com/user?id=prote) [on June 27, 2012](https://news.ycombinator.com/item?id=4168446) \| [prev](https://news.ycombinator.com/item?id=4167964#4169553) \| [next](https://news.ycombinator.com/item?id=4167964#4168220)\[–\]<br>Worked really well for me, took a 238k png down to 106k. I'm not seeing any artifacts. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [lilyball](https://news.ycombinator.com/user?id=lilyball) [on June 27, 2012](https://news.ycombinator.com/item?id=4168220) \| [prev](https://news.ycombinator.com/item?id=4167964#4168446) \| [next](https://news.ycombinator.com/item?id=4167964#4168352)\[–\]<br>The shadow on that compressed panda has visible artifacts. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [berkut](https://news.ycombinator.com/user?id=berkut) [on June 27, 2012](https://news.ycombinator.com/item?id=4169246) \| [parent](https://news.ycombinator.com/item?id=4167964#4168220) \| [next](https://news.ycombinator.com/item?id=4167964#4168352)\[–\]<br>Yeah, it almost looks like a premultiply issue, but PNG should be non-premultiplied, so...<br>[http://imgur.com/6ovIu](http://imgur.com/6ovIu)<br>Also, the original has values in the RGB channels for pixels with no alpha that aren't visible (due to the alpha) but need to be compressed, so it's not a fair test (although both do to some degree - turquoise area around the bear), so the new one could be compressed even more. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [pornel](https://news.ycombinator.com/user?id=pornel) [on June 27, 2012](https://news.ycombinator.com/item?id=4169386) \| [root](https://news.ycombinator.com/item?id=4167964#4168220) \| [parent](https://news.ycombinator.com/item?id=4167964#4169246) \| [next](https://news.ycombinator.com/item?id=4167964#4168352)\[–\]<br>pngquant backing this service works in premultiplied RGBA colorspace (but with 32-bit floating point per gun).<br>However the distortion is merely a side-effect of reducing image to 256-colors (from 15k colors). | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [antimora](https://news.ycombinator.com/user?id=antimora) [on June 27, 2012](https://news.ycombinator.com/item?id=4168352) \| [prev](https://news.ycombinator.com/item?id=4167964#4168220) \| [next](https://news.ycombinator.com/item?id=4167964#4169178)\[–\]<br>Why is it a service vs. being as software library? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [xutopia](https://news.ycombinator.com/user?id=xutopia) [on June 27, 2012](https://news.ycombinator.com/item?id=4168500) \| [parent](https://news.ycombinator.com/item?id=4167964#4168352) \| [next](https://news.ycombinator.com/item?id=4167964#4169178)\[–\]<br>Designers. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [james33](https://news.ycombinator.com/user?id=james33) [on June 27, 2012](https://news.ycombinator.com/item?id=4169178) \| [prev](https://news.ycombinator.com/item?id=4167964#4168352) \| [next](https://news.ycombinator.com/item?id=4167964#4169095)\[–\]<br>I've only tried one image so far, but the one I tried showed impressive results. I've always used [http://punypng.com](http://punypng.com/), which has always done a great job, but I just ran a file compressed down to 131kb in PunyPNG and TinyPNG took it down to 42kb! | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [nathos](https://news.ycombinator.com/user?id=nathos) [on June 27, 2012](https://news.ycombinator.com/item?id=4169095) \| [prev](https://news.ycombinator.com/item?id=4167964#4169178) \| [next](https://news.ycombinator.com/item?id=4167964#4170279)\[–\]<br>For those looking for a desktop application with more options (for Mac at least), check out Image Alpha: [http://pngmini.com/](http://pngmini.com/)<br>(from the creator of the equally awesome ImageOptim: [http://imageoptim.com/](http://imageoptim.com/)) | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [Brajeshwar](https://news.ycombinator.com/user?id=Brajeshwar) [on June 28, 2012](https://news.ycombinator.com/item?id=4170279) \| [prev](https://news.ycombinator.com/item?id=4167964#4169095) \| [next](https://news.ycombinator.com/item?id=4167964#4169971)\[–\]<br>Good Application Website. And for those asking for a Desktop Version - AlphaImage - [http://pngmini.com/](http://pngmini.com/).<br>AlphaImage will even give you the 'optional' Transparent PNG compatible with IE6. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [gcr](https://news.ycombinator.com/user?id=gcr) [on June 28, 2012](https://news.ycombinator.com/item?id=4169971) \| [prev](https://news.ycombinator.com/item?id=4167964#4170279) \| [next](https://news.ycombinator.com/item?id=4167964#4170232)\[–\]<br>PNG compresses "exact" gradients pretty well. I'd be interested in a tool that not only reduces colors (what this one is doing), but also smooths gradient-like segments of the image to comrpess better. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [dunham](https://news.ycombinator.com/user?id=dunham) [on June 28, 2012](https://news.ycombinator.com/item?id=4170228) \| [parent](https://news.ycombinator.com/item?id=4167964#4169971) \| [next](https://news.ycombinator.com/item?id=4167964#4170232)\[–\]<br>Yeah, I am curious how much you can improve compression by keeping everything 24 bit, but slightly tweaking the color values to make the result more compressible. (PNG applies one of five predictors to each line, takes the difference from the prediction, and deflates the result.)<br>For example, as a greedy algorithm: find the best predictor for a line, then tweak the line to reduce the alphabet (round off the difference from predicted values) or to get longer deflate matches (substitute values if they're close and match a previous run). | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [jewel](https://news.ycombinator.com/user?id=jewel) [on June 28, 2012](https://news.ycombinator.com/item?id=4170232) \| [prev](https://news.ycombinator.com/item?id=4167964#4169971) \| [next](https://news.ycombinator.com/item?id=4167964#4171065)\[–\]<br>PNG is no longer the only widely supported format with alpha channels. You can use WebP (which has javascript or flash polyfill.) You can fall back to a plain PNG for those with javascript disabled. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [rplnt](https://news.ycombinator.com/user?id=rplnt) [on June 28, 2012](https://news.ycombinator.com/item?id=4171065) \| [prev](https://news.ycombinator.com/item?id=4167964#4170232) \| [next](https://news.ycombinator.com/item?id=4167964#4169473)\[–\]<br>What is that logo from (or parody of)? ESET has very similar logo, but I think there was one with these colors. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [hamey](https://news.ycombinator.com/user?id=hamey) [on June 27, 2012](https://news.ycombinator.com/item?id=4169473) \| [prev](https://news.ycombinator.com/item?id=4167964#4171065) \| [next](https://news.ycombinator.com/item?id=4167964#4168489)\[–\]<br>There is no single ultimate solution for image optimisation. This looks like it'll work great for some images. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [ushi](https://news.ycombinator.com/user?id=ushi) [on June 27, 2012](https://news.ycombinator.com/item?id=4168489) \| [prev](https://news.ycombinator.com/item?id=4167964#4169473) \| [next](https://news.ycombinator.com/item?id=4167964#4169036)\[–\]<br>It would be great to have this in the rails asset pipeline. Do you plan to open source your compression code? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [molf](https://news.ycombinator.com/user?id=molf) [on June 27, 2012](https://news.ycombinator.com/item?id=4168672) \| [parent](https://news.ycombinator.com/item?id=4167964#4168489) \| [next](https://news.ycombinator.com/item?id=4167964#4168693)\[–\]<br>We plan to release an API. The compression code is a combination of a couple of open source tools with some careful tuning and heuristics for optimal result. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [jdub](https://news.ycombinator.com/user?id=jdub) [on June 27, 2012](https://news.ycombinator.com/item?id=4168693) \| [parent](https://news.ycombinator.com/item?id=4167964#4168489) \| [prev](https://news.ycombinator.com/item?id=4167964#4168672) \| [next](https://news.ycombinator.com/item?id=4167964#4169036)\[–\]<br>It's built on existing Open Source tools. Look for OptiPNG, PNGcrush, etc. There are plenty, this is just a pretty web front end. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [toblender](https://news.ycombinator.com/user?id=toblender) [on June 27, 2012](https://news.ycombinator.com/item?id=4169036) \| [prev](https://news.ycombinator.com/item?id=4167964#4168489) \| [next](https://news.ycombinator.com/item?id=4167964#4170344)\[–\]<br>You know you have been working with IE too long when this product brings a smile to your face.<br>NO MORE GIF's for me! | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [doomlaser](https://news.ycombinator.com/user?id=doomlaser) [on June 28, 2012](https://news.ycombinator.com/item?id=4170344) \| [prev](https://news.ycombinator.com/item?id=4167964#4169036) \| [next](https://news.ycombinator.com/item?id=4167964#4169248)\[–\]<br>8 bit pngs... Can't you just do this in Photoshop? What's the point of this site? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [melvinmt](https://news.ycombinator.com/user?id=melvinmt) [on June 28, 2012](https://news.ycombinator.com/item?id=4170499) \| [parent](https://news.ycombinator.com/item?id=4167964#4170344) \| [next](https://news.ycombinator.com/item?id=4167964#4171150)\[–\]<br>Uhm, not charging hundreds of dollars for 8bit pngs? | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [salmanapk](https://news.ycombinator.com/user?id=salmanapk) [on June 28, 2012](https://news.ycombinator.com/item?id=4171150) \| [parent](https://news.ycombinator.com/item?id=4167964#4170344) \| [prev](https://news.ycombinator.com/item?id=4167964#4170499) \| [next](https://news.ycombinator.com/item?id=4167964#4169248)\[–\]<br>No, Photoshop doesn't support 8-bit pngs. | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [redemade](https://news.ycombinator.com/user?id=redemade) [on June 27, 2012](https://news.ycombinator.com/item?id=4169248) \| [prev](https://news.ycombinator.com/item?id=4167964#4170344) \| [next](https://news.ycombinator.com/item?id=4167964#4168278)\[–\]<br>$ pngquant -iebug image.png | |
+  | |     |     |     |
+  | --- | --- | --- |
+  | ![](https://news.ycombinator.com/s.gif) |  | [rorrr](https://news.ycombinator.com/user?id=rorrr) [on June 27, 2012](https://news.ycombinator.com/item?id=4168278) \| [prev](https://news.ycombinator.com/item?id=4167964#4169248)\[–\]<br>It actually increases the size of some files.<br>[http://i.imgur.com/E1mL2.png](http://i.imgur.com/E1mL2.png)<br>10,842 bytes -> 15,863 bytes (a 46% increase).<br>Which is dumb, in cases like this it's better to return the original file. | | |
+  | ![](https://news.ycombinator.com/s.gif)
+  
+  |     |
+  | --- |
+  |  |
+  
+  [Guidelines](https://news.ycombinator.com/newsguidelines.html) \| [FAQ](https://news.ycombinator.com/newsfaq.html) \| [Lists](https://news.ycombinator.com/lists) \| [API](https://github.com/HackerNews/API) \| [Security](https://news.ycombinator.com/security.html) \| [Legal](https://www.ycombinator.com/legal/) \| [Apply to YC](https://www.ycombinator.com/apply/) \| [Contact](mailto:hn@ycombinator.com)
+  
+  Search: |
+  --- End Content ---

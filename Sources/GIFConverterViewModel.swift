@@ -105,6 +105,7 @@ class GIFConverterViewModel: ObservableObject {
 
     // MARK: - 批量转换：加载视频
     func loadVideos(_ urls: [URL]) {
+        Logger.shared.log("📥 加载 \(urls.count) 个视频")
         for url in urls {
             guard url.startAccessingSecurityScopedResource() else { continue }
             defer { url.stopAccessingSecurityScopedResource() }
@@ -163,12 +164,15 @@ class GIFConverterViewModel: ObservableObject {
     func startBatchConversion() {
         guard ffmpegAvailable else {
             addLog("❌ ffmpeg 工具不可用")
+            Logger.shared.log("❌ 批量转换失败: ffmpeg 不可用")
             return
         }
         guard !selectedVideos.isEmpty else {
             addLog("❌ 请先添加视频文件")
             return
         }
+
+        Logger.shared.log("🚀 批量视频转GIF开始，共 \(selectedVideos.count) 个视频")
 
         isConverting = true
         totalProgress = 0
@@ -208,11 +212,13 @@ class GIFConverterViewModel: ObservableObject {
             await MainActor.run {
                 self.isConverting = false
                 self.addLog("🎉 批量转换完成！")
+                Logger.shared.log("✅ 批量视频转GIF完成")
             }
         }
     }
 
     private func convertSingleVideo(_ item: VideoItem) async throws -> URL {
+        Logger.shared.log("🎬 转换视频: \(item.url.lastPathComponent) quality=\(selectedQuality.title)")
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("gif_conv_\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
@@ -317,6 +323,7 @@ class GIFConverterViewModel: ObservableObject {
 
     // MARK: - GIF 压缩
     func loadGIFs(_ urls: [URL]) {
+        Logger.shared.log("📥 加载 \(urls.count) 个GIF")
         selectedGIFURLs.append(contentsOf: urls)
     }
 
@@ -333,6 +340,8 @@ class GIFConverterViewModel: ObservableObject {
             addGIFLog("❌ 请先添加 GIF 文件")
             return
         }
+
+        Logger.shared.log("🚀 GIF压缩开始，共 \(selectedGIFURLs.count) 个文件")
 
         isCompressingGIF = true
         gifCompressionProgress = 0
@@ -360,11 +369,13 @@ class GIFConverterViewModel: ObservableObject {
             await MainActor.run {
                 self.isCompressingGIF = false
                 self.addGIFLog("🎉 GIF 压缩完成！")
+                Logger.shared.log("✅ GIF压缩完成")
             }
         }
     }
 
     private func compressSingleGIF(_ inputURL: URL) async throws -> URL {
+        Logger.shared.log("🔄 压缩GIF: \(inputURL.lastPathComponent)")
         let gifskiExec = gifskiPath
         let outputURL = inputURL.deletingLastPathComponent()
             .appendingPathComponent(inputURL.deletingPathExtension().lastPathComponent + "_compressed.gif")

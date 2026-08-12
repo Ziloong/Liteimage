@@ -29,6 +29,7 @@
 "超出长边时等比缩放" = "Scale down if long edge exceeds limit";
 "压缩后直接替换原文件" = "Original file will be replaced after compression";
 "压缩后保存为 xxx-compressed.xxx" = "Compressed file will be saved as xxx-compressed.xxx";
+"中质量：本地压缩（速度取决于电脑性能）\n高质量：网络压缩（速度取决于网络状况）" = "Medium: Local (speed depends on your Mac)\nHigh: Cloud (speed depends on network)";
 "压缩完成后自动覆盖原文件" = "Original file will be replaced after compression";
 "压缩完成后保存为 xxx-compressed.xxx" = "Compressed file will be saved as xxx-compressed.xxx";
 
@@ -80,6 +81,7 @@
 "等待压缩..." = "Waiting for compression...";
 
 /* Quality Presets */
+"不压缩" = "No Compression";
 "低质量" = "Low";
 "中等质量" = "Medium";
 "高质量" = "High";
@@ -96,11 +98,32 @@
 "关闭" = "Close";
 "测试中..." = "Testing...";
 "测试 API 可用性" = "Test API";
+"测试备用 API" = "Test Backup API";
+"备用 API Key" = "Backup API Key";
+"主 Key 额度用尽时自动切换（可选）" = "Auto-switch when primary key quota exhausted (optional)";
+"还原默认 API Key" = "Restore Default Keys";
+"✅ 已还原为默认 API Key" = "✅ Restored to default API Keys";
+"API 额度已用完" = "API quota exhausted";
 "保存" = "Save";
 "✅ API Key 有效！本月已用 %d 次，剩余 %d 次" = "✅ API Key valid! Used %d times this month, %d remaining.";
 "✅ 已保存" = "✅ Saved";
 "项目仓库地址" = "Repository";
 "飞书文档" = "Feishu Doc";
+
+"不转换" = "No Conversion";
+"JPG → PNG" = "JPG → PNG";
+"PNG → JPG" = "PNG → JPG";
+"转换格式" = "Convert Format";
+"马上压缩" = "Compress Now";
+"图片列表" = "Image List";
+"拖放图片到上方区域开始" = "Drop images to the area above to start";
+"转换中..." = "Converting...";
+
+/* Debug */
+"Debug 日志" = "Debug Log";
+"开启后将详细日志写入文件（~/Library/Logs/LiteImage/）" = "Write detailed logs to file (~/Library/Logs/LiteImage/)";
+"查看日志" = "View Log";
+"打开日志目录" = "Open Log Directory";
 
 /* Errors */
 "未知错误" = "Unknown error";

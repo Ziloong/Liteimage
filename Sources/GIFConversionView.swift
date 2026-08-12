@@ -425,6 +425,7 @@ struct GIFConversionView: View {
     }
 
     private func handleDroppedFiles(_ urls: [URL]) {
+        Logger.shared.log("📥 拖放文件: \(urls.map { $0.lastPathComponent }.joined(separator: ", "))")
         for url in urls {
             let ext = url.pathExtension.lowercased()
             if ext == "gif" {

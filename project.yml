@@ -26,6 +26,9 @@ targets:
       - path: Resources/ffmpeg
       - path: Resources/gifski
       - path: Resources/pngquant
+      - path: Resources/oxipng
+      - path: Resources/zopflipng
+      - path: Resources/posterize
       - path: Resources/libpng16.16.dylib
       - path: AppIcon.icns
       - path: Sources/en.lproj

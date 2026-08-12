@@ -15,10 +15,20 @@ CONFIG_FILE = Path.home() / "AppData" / "Local" / "LiteImage" / "config.json"
 os.makedirs(CONFIG_FILE.parent, exist_ok=True)
 
 
+DEFAULT_API_KEY = "NYPwQ8Kpjcng9gCSxmhy5hdzBGS7wpzC"
+DEFAULT_BACKUP_KEY = "vbQQ2fGGLVLntTkpNRLCtQbPhFx4Jx8x"
+
+
 def load_config():
     if CONFIG_FILE.exists():
-        return json.loads(CONFIG_FILE.read_text())
-    return {"api_key": "", "backup_api_key": "", "debug_log": False, "overwrite": False}
+        cfg = json.loads(CONFIG_FILE.read_text())
+    else:
+        cfg = {}
+    cfg.setdefault("api_key", DEFAULT_API_KEY)
+    cfg.setdefault("backup_api_key", DEFAULT_BACKUP_KEY)
+    cfg.setdefault("debug_log", False)
+    cfg.setdefault("overwrite", False)
+    return cfg
 
 
 def save_config(cfg):
@@ -365,6 +375,12 @@ class LiteImageApp(tk.Tk):
             save_config(self.cfg)
             logger.enable(debug_var.get())
             dlg.destroy()
+
+        def restore():
+            api_var.set(DEFAULT_API_KEY)
+            backup_var.set(DEFAULT_BACKUP_KEY)
+
+        ttk.Button(api_frame, text="🔄 还原默认 Key", command=restore).pack(pady=2)
 
         ttk.Button(dlg, text="💾 保存设置", command=save).pack(pady=10)
 

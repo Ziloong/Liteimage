@@ -96,7 +96,7 @@ class LiteImageApp:
                 ft.Icon(ft.Icons.CLOUD_UPLOAD_OUTLINED, size=64, color=ft.Colors.GREY),
                 ft.Text("拖放图片到此处，或点击「添加图片」", size=16, color=ft.Colors.GREY),
             ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            expand=True, alignment=ft.alignment.center,
+            expand=True
         )
 
         # ——— 底部 ———

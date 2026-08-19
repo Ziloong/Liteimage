@@ -96,26 +96,18 @@ class GIFConverterViewModel: ObservableObject {
     }
 
     // MARK: - 进程跟踪（停止按钮）
+    // 类为 @MainActor，所有访问天然串行，无需加锁
     private var currentProcess: Process?
-    private let processLock = NSLock()
 
     func terminateCurrentProcess() {
-        processLock.lock()
-        defer { processLock.unlock() }
         guard let proc = currentProcess, proc.isRunning else { return }
         kill(proc.processIdentifier, SIGKILL)
     }
 
     /// 运行进程并跟踪（可被 terminateCurrentProcess 中断）
     private func runTrackedProcessAsync(_ process: Process) async throws {
-        processLock.lock()
         currentProcess = process
-        processLock.unlock()
-        defer {
-            processLock.lock()
-            currentProcess = nil
-            processLock.unlock()
-        }
+        defer { currentProcess = nil }
         try process.run()
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             DispatchQueue.global().async {

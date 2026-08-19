@@ -116,6 +116,7 @@ def convert_to_jpeg(input_path, output_path, quality=80):
 def resize_by_long_edge(input_path, output_path, max_pixels):
     """按长边等比缩放"""
     img = Image.open(input_path)
+    fmt = img.format or "PNG"
     w, h = img.size
     long_edge = max(w, h)
     if long_edge <= max_pixels:
@@ -124,7 +125,15 @@ def resize_by_long_edge(input_path, output_path, max_pixels):
     ratio = max_pixels / long_edge
     new_size = (int(w * ratio), int(h * ratio))
     img_resized = img.resize(new_size, Image.LANCZOS)
-    img_resized.save(output_path)
+
+    # 显式指定格式保存（临时文件可能没有图片扩展名）
+    if fmt == "JPEG":
+        if img_resized.mode in ("RGBA", "LA", "P"):
+            img_resized = img_resized.convert("RGB")
+        img_resized.save(output_path, "JPEG", quality=95)
+    else:
+        img_resized.save(output_path, "PNG")
+
     logger.info(f"📐 缩放: {os.path.basename(input_path)} {w}x{h} → {new_size[0]}x{new_size[1]}")
     return True
 
